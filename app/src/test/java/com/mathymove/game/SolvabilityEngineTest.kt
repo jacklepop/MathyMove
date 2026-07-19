@@ -46,4 +46,10 @@ class SolvabilityEngineTest {
 
         assertEquals("Path evaluation must reach target number", target, curr)
     }
+
+    @Test
+    fun testApplyOp_multiplicationAndDivision() {
+        assertEquals(15, SolvabilityEngine.applyOp(5, "x", 3))
+        assertEquals(4, SolvabilityEngine.applyOp(12, "÷", 3))
+    }
 }

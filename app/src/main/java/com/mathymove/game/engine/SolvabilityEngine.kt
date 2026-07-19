@@ -58,12 +58,12 @@ object SolvabilityEngine {
         val ops = mutableListOf<String>()
         if (target > curr) {
             ops.add("+")
-            ops.add("*")
+            ops.add("x")
         } else if (target < curr) {
             ops.add("-")
-            ops.add("/")
+            ops.add("÷")
         } else {
-            ops.addAll(listOf("+", "-", "*", "/"))
+            ops.addAll(listOf("+", "-", "x", "÷"))
         }
         return ops.randomOrNull() ?: "+"
     }
@@ -72,8 +72,8 @@ object SolvabilityEngine {
         return when (op) {
             "+" -> Random.nextInt(1, 11)
             "-" -> if (curr > 1) Random.nextInt(1, minOf(curr, 11)) else 1
-            "*" -> if (curr in 1..20) Random.nextInt(2, 5) else 1
-            "/" -> {
+            "x", "*" -> if (curr in 1..20) Random.nextInt(2, 5) else 1
+            "÷", "/" -> {
                 val divisors = (1..10).filter { it != 0 && curr % it == 0 }
                 if (divisors.isNotEmpty()) divisors.random() else 1
             }
@@ -92,13 +92,13 @@ object SolvabilityEngine {
         if (curr != 0 && target % curr == 0) {
             val factor = target / curr
             if (factor in 1..10) {
-                return Pair("*", factor)
+                return Pair("x", factor)
             }
         }
         if (target != 0 && curr % target == 0) {
             val divisor = curr / target
             if (divisor in 1..10) {
-                return Pair("/", divisor)
+                return Pair("÷", divisor)
             }
         }
         // Fallback: construct exact addition / subtraction pair or single move adjustment
@@ -114,8 +114,8 @@ object SolvabilityEngine {
         return when (op) {
             "+" -> value + number
             "-" -> value - number
-            "*" -> value * number
-            "/" -> if (number != 0 && value % number == 0) value / number else value
+            "x", "*", "×" -> value * number
+            "÷", "/" -> if (number != 0 && value % number == 0) value / number else value
             else -> value
         }
     }
@@ -145,7 +145,7 @@ object SolvabilityEngine {
         val goldenBranchIndex = Random.nextInt(0, baseAngles.size)
 
         // Prepare pool of distinct operators to prevent duplicate symbols across branches
-        val availableOperators = mutableListOf("+", "-", "*", "/").shuffled().toMutableList()
+        val availableOperators = mutableListOf("+", "-", "x", "÷").shuffled().toMutableList()
         if (nextType == NodeType.OPERATOR && goldenStep != null) {
             val goldenOp = goldenStep.first
             // Ensure golden operator is prioritized at golden branch, then remove from pool
@@ -163,7 +163,7 @@ object SolvabilityEngine {
                 if (isGolden) {
                     goldenStep!!.first
                 } else {
-                    if (availableOperators.isNotEmpty()) availableOperators.removeAt(0) else listOf("+", "-", "*", "/").random()
+                    if (availableOperators.isNotEmpty()) availableOperators.removeAt(0) else listOf("+", "-", "x", "÷").random()
                 }
             } else {
                 if (isGolden) goldenStep!!.second.toString() else Random.nextInt(1, 11).toString()
