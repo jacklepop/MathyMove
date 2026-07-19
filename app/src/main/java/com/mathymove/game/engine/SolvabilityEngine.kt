@@ -218,8 +218,8 @@ object SolvabilityEngine {
     /**
      * Tree Pruning and Distance Calculator:
      * Calculates graph distances from `activeNodeId` via BFS.
-     * Prunes (deletes) all nodes 3 or more levels away from memory and state.
-     * Returns the pruned node map and the graph distance map (0 = active, 1 = 1 level, 2 = 2 levels).
+     * Retains nodes up to 3 levels away so nodes moving to level 3 can smoothly fade out over 1.5 seconds.
+     * Prunes (deletes) nodes 4 or more levels away from memory and state.
      */
     fun pruneAndCalculateDistances(
         nodes: Map<String, GameNode>,
@@ -237,7 +237,7 @@ object SolvabilityEngine {
             val currId = queue.removeFirst()
             val currDist = distances[currId] ?: 0
 
-            if (currDist < 3) {
+            if (currDist < 4) {
                 val node = nodes[currId] ?: continue
                 val neighbors = mutableListOf<String>()
                 node.parentId?.let { neighbors.add(it) }
@@ -252,10 +252,10 @@ object SolvabilityEngine {
             }
         }
 
-        // Prune nodes at distance >= 3 from state and memory
+        // Keep nodes up to distance 3 (0=active, 1=100%/70%, 2=40%, 3=fading to 0% in 1.5s)
         val prunedNodes = nodes.filterKeys { id ->
             val dist = distances[id]
-            dist != null && dist <= 2
+            dist != null && dist <= 3
         }.toMutableMap()
 
         // Clean up references to pruned nodes in parentId & childrenIds

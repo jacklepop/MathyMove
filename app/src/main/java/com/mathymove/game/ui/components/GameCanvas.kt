@@ -93,8 +93,23 @@ fun GameCanvas(
             0 -> 1.0f  // Active node & direct radiating lines (100% visible)
             1 -> 0.7f  // 1 level away (30% transparency)
             2 -> 0.4f  // 2 levels away (60% transparency)
-            else -> 0.0f
+            else -> 0.0f // Fading out over 1.5s to 0% opacity
         }
+    }
+
+    // Smooth 1.5s animated opacity map for all nodes
+    val nodeAlphaMap = nodes.mapValues { (id, _) ->
+        val nodeDist = distanceMap[id] ?: 3
+        val targetAlpha = getAlphaForDistance(nodeDist)
+        val animAlpha by animateFloatAsState(
+            targetValue = targetAlpha,
+            animationSpec = androidx.compose.animation.core.tween(
+                durationMillis = 1500,
+                easing = androidx.compose.animation.core.LinearEasing
+            ),
+            label = "alpha_$id"
+        )
+        animAlpha
     }
 
     val circleRadiusPx = 70f
@@ -133,7 +148,7 @@ fun GameCanvas(
             val centerCanvasX = size.width / 2f
             val centerCanvasY = size.height / 2f
 
-            // Step 1: Draw radiating connecting lines between parent and child nodes
+            // Step 1: Draw radiating connecting lines between parent and child nodes with 1.5s smooth fade
             nodes.values.forEach { node ->
                 val parent = node.parentId?.let { nodes[it] }
                 if (parent != null) {
@@ -142,85 +157,83 @@ fun GameCanvas(
                     val cScreenX = centerCanvasX + (node.x - animOffsetX)
                     val cScreenY = centerCanvasY + (node.y - animOffsetY)
 
-                    val pDist = distanceMap[parent.id] ?: 2
-                    val cDist = distanceMap[node.id] ?: 2
+                    val pAlpha = nodeAlphaMap[parent.id] ?: 0f
+                    val cAlpha = nodeAlphaMap[node.id] ?: 0f
                     val isConnectedToActive = (node.id == activeNodeId || parent.id == activeNodeId)
 
-                    val lineAlpha = if (isConnectedToActive) 1.0f else minOf(getAlphaForDistance(pDist), getAlphaForDistance(cDist))
-                    val baseLineColor = if (isConnectedToActive) LineActiveColor else LineColor
+                    val lineAlpha = if (isConnectedToActive) 1.0f else minOf(pAlpha, cAlpha)
+                    if (lineAlpha > 0.01f) {
+                        val baseLineColor = if (isConnectedToActive) LineActiveColor else LineColor
 
-                    drawLine(
-                        color = baseLineColor.copy(alpha = lineAlpha),
-                        start = Offset(pScreenX, pScreenY),
-                        end = Offset(cScreenX, cScreenY),
-                        strokeWidth = if (isConnectedToActive) lineStrokePx * 1.5f else lineStrokePx
-                    )
+                        drawLine(
+                            color = baseLineColor.copy(alpha = lineAlpha),
+                            start = Offset(pScreenX, pScreenY),
+                            end = Offset(cScreenX, cScreenY),
+                            strokeWidth = if (isConnectedToActive) lineStrokePx * 1.5f else lineStrokePx
+                        )
+                    }
                 }
             }
 
-            // Step 2: Draw circle nodes & text with distance-based transparency
+            // Step 2: Draw circle nodes & text with 1.5s smooth fade out animation
             nodes.values.forEach { node ->
                 val screenX = centerCanvasX + (node.x - animOffsetX)
                 val screenY = centerCanvasY + (node.y - animOffsetY)
 
                 val isActive = node.id == activeNodeId
                 val isVisited = node.visited && !isActive
+                val nodeAlpha = nodeAlphaMap[node.id] ?: 0f
 
-                val nodeDist = distanceMap[node.id] ?: 0
-                val nodeAlpha = getAlphaForDistance(nodeDist)
+                if (nodeAlpha > 0.01f) {
+                    val bgColor: Color
+                    val textColor: Color
 
-                val bgColor: Color
-                val textColor: Color
+                    if (isActive) {
+                        bgColor = NodeActiveBackground
+                        textColor = NodeActiveText
+                    } else if (isVisited) {
+                        bgColor = NodeVisitedBackground
+                        textColor = NodeVisitedText
+                    } else {
+                        bgColor = NodeNormalBackground
+                        textColor = NodeNormalText
+                    }
 
-                if (isActive) {
-                    bgColor = NodeActiveBackground
-                    textColor = NodeActiveText
-                } else if (isVisited) {
-                    bgColor = NodeVisitedBackground
-                    textColor = NodeVisitedText
-                } else {
-                    bgColor = NodeNormalBackground
-                    textColor = NodeNormalText
-                }
-
-                // Increase radius for active circle when attached operator is present (e.g. "5 x")
-                val isExpandedCircle = isActive && node.value.contains(" ")
-                val currentRadiusPx = if (isExpandedCircle) 95f else circleRadiusPx
-
-                // Draw solid node circle with distance-based opacity
-                drawCircle(
-                    color = bgColor.copy(alpha = nodeAlpha),
-                    radius = currentRadiusPx,
-                    center = Offset(screenX, screenY)
-                )
-
-                // Outer border for active/selectable nodes
-                if (isActive) {
+                    // Draw solid node circle
                     drawCircle(
-                        color = LineActiveColor.copy(alpha = nodeAlpha),
-                        radius = currentRadiusPx + 6f,
-                        center = Offset(screenX, screenY),
-                        style = Stroke(width = 4f)
+                        color = bgColor.copy(alpha = nodeAlpha),
+                        radius = circleRadiusPx,
+                        center = Offset(screenX, screenY)
+                    )
+
+                    // Outer border for active/selectable nodes
+                    if (isActive) {
+                        drawCircle(
+                            color = LineActiveColor.copy(alpha = nodeAlpha),
+                            radius = circleRadiusPx + 6f,
+                            center = Offset(screenX, screenY),
+                            style = Stroke(width = 4f)
+                        )
+                    }
+
+                    // Draw Text symbol or number in circle
+                    val textLayoutResult = textMeasurer.measure(
+                        text = node.value,
+                        style = TextStyle(
+                            color = textColor.copy(alpha = nodeAlpha),
+                            fontSize = 24.sp,
+                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+                        )
+                    )
+
+                    drawText(
+                        textLayoutResult = textLayoutResult,
+                        topLeft = Offset(
+                            x = screenX - (textLayoutResult.size.width / 2f),
+                            y = screenY - (textLayoutResult.size.height / 2f)
+                        )
                     )
                 }
-
-                // Draw Text symbol or number in circle
-                val textLayoutResult = textMeasurer.measure(
-                    text = node.value,
-                    style = TextStyle(
-                        color = textColor.copy(alpha = nodeAlpha),
-                        fontSize = if (isExpandedCircle) 22.sp else 24.sp,
-                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
-                    )
-                )
-
-                drawText(
-                    textLayoutResult = textLayoutResult,
-                    topLeft = Offset(
-                        x = screenX - (textLayoutResult.size.width / 2f),
-                        y = screenY - (textLayoutResult.size.height / 2f)
-                    )
-                )
             }
         }
     }

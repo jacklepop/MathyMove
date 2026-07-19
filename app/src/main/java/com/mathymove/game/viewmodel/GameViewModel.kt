@@ -121,12 +121,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         if (targetNode.type == NodeType.OPERATOR) {
             newPendingOp = targetNode.value
-            // Attach operator to current active number node so main circle displays "5 x" or "10 ÷"
-            val currentActiveNode = currentState.nodes[currentState.activeNodeId]
-            if (currentActiveNode != null) {
-                val attachedValue = "${currentState.currentValue} $newPendingOp"
-                updatedNodes[currentActiveNode.id] = currentActiveNode.copy(value = attachedValue)
-            }
         } else if (targetNode.type == NodeType.NUMBER) {
             val numberVal = targetNode.value.toIntOrNull() ?: 0
             if (newPendingOp != null) {
