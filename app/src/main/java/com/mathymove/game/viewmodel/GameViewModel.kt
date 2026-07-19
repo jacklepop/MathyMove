@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -45,8 +46,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val totalMoves = 0
             val targetNum = SolvabilityEngine.generateTargetNumber(totalMoves)
             val movesBudget = 14
+            val now = System.currentTimeMillis()
 
-            val rootId = "root_${System.currentTimeMillis()}"
+            val rootId = "root_$now"
             val rootNode = GameNode(
                 id = rootId,
                 x = 0f,
@@ -85,22 +87,29 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 activeNodeId = rootId,
                 nodes = prunedNodes,
                 isGameOver = false,
-                hasSavedGame = true
+                hasSavedGame = true,
+                gameTimestamp = now
             )
 
-            _uiState.value = newGameState
+            _uiState.update { current ->
+                newGameState.copy(highScores = current.highScores)
+            }
             repository.saveGame(newGameState)
         }
     }
 
     fun continueGame() {
         viewModelScope.launch {
-            repository.savedGameState.collectLatest { saved ->
-                if (saved != null) {
-                    _uiState.value = saved.copy(hasSavedGame = true)
-                } else {
-                    startNewGame()
+            val saved = repository.savedGameState.firstOrNull()
+            if (saved != null) {
+                _uiState.update { current ->
+                    saved.copy(
+                        hasSavedGame = true,
+                        highScores = current.highScores
+                    )
                 }
+            } else {
+                startNewGame()
             }
         }
     }
@@ -176,13 +185,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         var newMovesBudget = currentState.movesBeforeCalculation
         var resetMovesTaken = newMovesTakenForTarget
         var newScore = currentState.score
+        val gameTimestamp = if (currentState.gameTimestamp == 0L) System.currentTimeMillis() else currentState.gameTimestamp
 
         if (newCurrentValue == currentState.targetNumber) {
             // Target Achieved! Add target value to current score
             newScore += currentState.targetNumber
 
             viewModelScope.launch {
-                repository.addHighScore(newScore)
+                repository.saveHighScore(gameTimestamp, newScore)
             }
 
             // Dynamically generate next goal number
@@ -211,13 +221,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             activeNodeId = nodeId,
             nodes = finalPrunedNodes,
             isGameOver = isLost,
-            activeRemainder = remainderObj
+            activeRemainder = remainderObj,
+            gameTimestamp = gameTimestamp
         )
 
-        _uiState.value = nextState
+        _uiState.update { current ->
+            nextState.copy(highScores = current.highScores)
+        }
 
         viewModelScope.launch {
             if (isLost) {
+                repository.saveHighScore(gameTimestamp, newScore)
                 repository.clearSavedGame()
             } else {
                 repository.saveGame(nextState)

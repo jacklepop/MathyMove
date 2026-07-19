@@ -53,16 +53,10 @@ class GameRepository(private val context: Context) {
         }
     }
 
-    suspend fun addHighScore(score: Int) {
-        if (score <= 0) return
+    suspend fun saveHighScore(gameTimestamp: Long, score: Int) {
+        val timestampToUse = if (gameTimestamp <= 0L) System.currentTimeMillis() else gameTimestamp
         val formatter = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
-        val now = System.currentTimeMillis()
-        val formattedDate = formatter.format(java.util.Date(now))
-        val newEntry = com.mathymove.game.model.HighScoreEntry(
-            score = score,
-            timestamp = now,
-            formattedDateTime = formattedDate
-        )
+        val formattedDate = formatter.format(java.util.Date(timestampToUse))
 
         context.dataStore.edit { prefs ->
             val jsonStr = prefs[KEY_HIGH_SCORES]
@@ -70,12 +64,29 @@ class GameRepository(private val context: Context) {
                 try { json.decodeFromString<List<HighScoreEntry>>(jsonStr) } catch (e: Exception) { emptyList() }
             } else emptyList()
 
-            val updatedList = (currentList + newEntry)
+            val existingIndex = currentList.indexOfFirst { it.timestamp == timestampToUse }
+            val updatedList = if (existingIndex != -1) {
+                currentList.toMutableList().apply {
+                    this[existingIndex] = this[existingIndex].copy(score = maxOf(this[existingIndex].score, score))
+                }
+            } else {
+                currentList + HighScoreEntry(
+                    score = score,
+                    timestamp = timestampToUse,
+                    formattedDateTime = formattedDate
+                )
+            }
+
+            val sortedTop10 = updatedList
                 .sortedByDescending { it.score }
                 .take(10)
 
-            prefs[KEY_HIGH_SCORES] = json.encodeToString(updatedList)
+            prefs[KEY_HIGH_SCORES] = json.encodeToString(sortedTop10)
         }
+    }
+
+    suspend fun addHighScore(score: Int) {
+        saveHighScore(System.currentTimeMillis(), score)
     }
 
     suspend fun saveGame(state: GameState) {
