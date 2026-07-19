@@ -215,7 +215,7 @@ fun GameScreen(
                     )
                     HudStatItem(
                         label = "Moves Taken",
-                        value = "${state.movesTakenForTarget}",
+                        value = "${state.totalMovesTaken}",
                         modifier = Modifier.weight(1f)
                     )
                     HudStatItem(
