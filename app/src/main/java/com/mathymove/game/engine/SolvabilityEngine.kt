@@ -8,7 +8,7 @@ import kotlin.random.Random
 
 object SolvabilityEngine {
 
-    private const val NODE_DISTANCE = 160f // Spacing between radiating nodes
+    private const val NODE_DISTANCE = 240f // Spacing between radiating nodes
 
     fun generateTargetNumber(totalMovesTaken: Int): Int {
         return if (totalMovesTaken >= 200) {
@@ -123,6 +123,7 @@ object SolvabilityEngine {
     /**
      * Expands radiating nodes from `parentNode`.
      * Guarantees one golden branch follows `goldenPath` if available.
+     * Ensures diverse non-repetitive operators across all child branches.
      */
     fun expandNodeChildren(
         parentNode: GameNode,
@@ -137,10 +138,19 @@ object SolvabilityEngine {
             listOf(0f, 90f, 180f, 270f)
         } else {
             val parentAngle = parentNode.directionAngle
-            listOf(parentAngle - 45f, parentAngle, parentAngle + 45f)
+            listOf(parentAngle - 40f, parentAngle, parentAngle + 40f)
         }
 
+        val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
         val goldenBranchIndex = Random.nextInt(0, baseAngles.size)
+
+        // Prepare pool of distinct operators to prevent duplicate symbols across branches
+        val availableOperators = mutableListOf("+", "-", "*", "/").shuffled().toMutableList()
+        if (nextType == NodeType.OPERATOR && goldenStep != null) {
+            val goldenOp = goldenStep.first
+            // Ensure golden operator is prioritized at golden branch, then remove from pool
+            availableOperators.remove(goldenOp)
+        }
 
         baseAngles.forEachIndexed { index, angleDeg ->
             val rad = Math.toRadians(angleDeg.toDouble())
@@ -148,10 +158,13 @@ object SolvabilityEngine {
             val childY = parentNode.y + (NODE_DISTANCE * sin(rad)).toFloat()
 
             val isGolden = (index == goldenBranchIndex) && (goldenStep != null)
-            val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
 
             val valStr = if (nextType == NodeType.OPERATOR) {
-                if (isGolden) goldenStep!!.first else listOf("+", "-", "*", "/").random()
+                if (isGolden) {
+                    goldenStep!!.first
+                } else {
+                    if (availableOperators.isNotEmpty()) availableOperators.removeAt(0) else listOf("+", "-", "*", "/").random()
+                }
             } else {
                 if (isGolden) goldenStep!!.second.toString() else Random.nextInt(1, 11).toString()
             }
