@@ -31,6 +31,11 @@ import com.mathymove.game.ui.theme.NodeActiveBackground
 import com.mathymove.game.ui.theme.TextPrimary
 import com.mathymove.game.ui.theme.TextSecondary
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
+
 @Composable
 fun HighScoreDialog(
     highScores: List<HighScoreEntry>,
@@ -59,46 +64,76 @@ fun HighScoreDialog(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
                 )
             } else {
-                LazyColumn(
+                val listState = rememberLazyListState()
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(260.dp)
-                        .padding(vertical = 8.dp)
                 ) {
-                    itemsIndexed(highScores) { index, entry ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "#${index + 1}",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextSecondary,
-                                    modifier = Modifier.padding(end = 12.dp)
-                                )
-                                Column {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 12.dp, top = 8.dp, bottom = 8.dp)
+                    ) {
+                        itemsIndexed(highScores) { index, entry ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "${entry.score} pts",
-                                        fontSize = 16.sp,
+                                        text = "#${index + 1}",
+                                        fontSize = 15.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
+                                        color = TextSecondary,
+                                        modifier = Modifier.padding(end = 12.dp)
                                     )
-                                    Text(
-                                        text = entry.formattedDateTime,
-                                        fontSize = 12.sp,
-                                        color = TextSecondary
-                                    )
+                                    Column {
+                                        Text(
+                                            text = "${entry.score} pts",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimary
+                                        )
+                                        Text(
+                                            text = entry.formattedDateTime,
+                                            fontSize = 12.sp,
+                                            color = TextSecondary
+                                        )
+                                    }
                                 }
                             }
+                            if (index < highScores.size - 1) {
+                                HorizontalDivider(color = GreyBorder.copy(alpha = 0.5f))
+                            }
                         }
-                        if (index < highScores.size - 1) {
-                            HorizontalDivider(color = GreyBorder.copy(alpha = 0.5f))
-                        }
+                    }
+
+                    // Custom Scrollbar: Light grey 20px height x 4px width rounded scrollbar at right side
+                    val layoutInfo = listState.layoutInfo
+                    val totalItems = layoutInfo.totalItemsCount
+                    val visibleItems = layoutInfo.visibleItemsInfo.size
+
+                    if (totalItems > 0) {
+                        val maxScrollIndex = (totalItems - visibleItems).coerceAtLeast(1)
+                        val scrollFraction = (listState.firstVisibleItemIndex.toFloat() / maxScrollIndex).coerceIn(0f, 1f)
+
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = (240 * scrollFraction).dp, end = 2.dp)
+                                .width(4.dp)
+                                .height(20.dp)
+                                .background(
+                                    color = GreyBorder,
+                                    shape = RoundedCornerShape(2.dp)
+                                )
+                        )
                     }
                 }
             }
