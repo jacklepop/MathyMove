@@ -136,12 +136,12 @@ object SolvabilityEngine {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
 
-        // 4 Radiating directions at EVERY depth layer
+        // 3 Radiating directions at EVERY depth layer
         val baseAngles = if (parentNode.depth == 0) {
-            listOf(0f, 90f, 180f, 270f)
+            listOf(0f, 120f, 240f)
         } else {
             val parentAngle = parentNode.directionAngle
-            listOf(parentAngle - 54f, parentAngle - 18f, parentAngle + 18f, parentAngle + 54f)
+            listOf(parentAngle - 40f, parentAngle, parentAngle + 40f)
         }
 
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
@@ -150,7 +150,7 @@ object SolvabilityEngine {
         // Check if currentValue can be cleanly divided by any integer in 2..10
         val canDivideCleanly = (currentValue == 0) || (2..10).any { it != 0 && currentValue % it == 0 }
 
-        // Prepare pool of distinct operators (+, -, x, ÷)
+        // Prepare pool of distinct operators (+, -, x, ÷) to ensure no duplicate operators across the 3 branches
         val availableOperators = mutableListOf("+", "-", "x", "÷")
         if (!canDivideCleanly) {
             availableOperators.remove("÷") // Do not present division if clean division is impossible
