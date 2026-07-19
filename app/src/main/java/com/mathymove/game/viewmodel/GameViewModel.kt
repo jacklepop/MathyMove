@@ -44,7 +44,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val startNum = SolvabilityEngine.generateStartNumber()
             val totalMoves = 0
             val targetNum = SolvabilityEngine.generateTargetNumber(totalMoves)
-            val movesBudget = SolvabilityEngine.generateMovesBeforeCalculation(totalMoves)
+            val movesBudget = 14
 
             val rootId = "root_${System.currentTimeMillis()}"
             val rootNode = GameNode(
