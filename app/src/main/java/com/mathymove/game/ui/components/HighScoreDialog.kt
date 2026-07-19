@@ -116,24 +116,31 @@ fun HighScoreDialog(
 
                     // Custom Scrollbar: Light grey 20px height x 4px width rounded scrollbar at right side
                     val layoutInfo = listState.layoutInfo
+                    val visibleItemsInfo = layoutInfo.visibleItemsInfo
                     val totalItems = layoutInfo.totalItemsCount
-                    val visibleItems = layoutInfo.visibleItemsInfo.size
 
-                    if (totalItems > 0) {
-                        val maxScrollIndex = (totalItems - visibleItems).coerceAtLeast(1)
-                        val scrollFraction = (listState.firstVisibleItemIndex.toFloat() / maxScrollIndex).coerceIn(0f, 1f)
+                    if (totalItems > 0 && visibleItemsInfo.isNotEmpty()) {
+                        val avgItemSize = visibleItemsInfo.sumOf { it.size }.toFloat() / visibleItemsInfo.size
+                        val viewportHeight = (layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset).toFloat()
+                        val totalScrollableContentHeight = (totalItems * avgItemSize - viewportHeight).coerceAtLeast(1f)
 
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = (240 * scrollFraction).dp, end = 2.dp)
-                                .width(4.dp)
-                                .height(20.dp)
-                                .background(
-                                    color = GreyBorder,
-                                    shape = RoundedCornerShape(2.dp)
-                                )
-                        )
+                        val currentScrollOffset = (listState.firstVisibleItemIndex * avgItemSize) + listState.firstVisibleItemScrollOffset
+                        val scrollFraction = (currentScrollOffset / totalScrollableContentHeight).coerceIn(0f, 1f)
+                        val canScroll = totalItems > visibleItemsInfo.size || listState.firstVisibleItemScrollOffset > 0
+
+                        if (canScroll) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = (240 * scrollFraction).dp, end = 2.dp)
+                                    .width(4.dp)
+                                    .height(20.dp)
+                                    .background(
+                                        color = GreyBorder,
+                                        shape = RoundedCornerShape(2.dp)
+                                    )
+                            )
+                        }
                     }
                 }
             }
