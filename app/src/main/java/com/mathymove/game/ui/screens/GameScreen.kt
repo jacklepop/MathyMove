@@ -103,6 +103,58 @@ fun GameScreen(
         }
     }
 
+    // Remaining Moves Animation (Target style when <= 5: fade out 0.5s -> fade in 1.0s & scale 200% down to 100%)
+    val currentMovesRemaining = state.movesRemainingForTarget
+    var displayedMoves by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(currentMovesRemaining) }
+    val movesAlpha = androidx.compose.runtime.remember { Animatable(1f) }
+    val movesScale = androidx.compose.runtime.remember { Animatable(1f) }
+
+    androidx.compose.runtime.LaunchedEffect(currentMovesRemaining) {
+        if (currentMovesRemaining <= 5 && currentMovesRemaining != displayedMoves) {
+            // Phase 1: Fade out old moves count to 0 visibility in 0.5 seconds (500ms)
+            movesAlpha.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 500,
+                    easing = LinearEasing
+                )
+            )
+
+            // Update displayed moves count
+            displayedMoves = currentMovesRemaining
+
+            // Reset scale to 200% (2.0f) and alpha to 0 for Phase 2
+            movesScale.snapTo(2f)
+
+            // Phase 2: Fade in to 100% visibility & scale down to 100% size over 1.0 second (1000ms)
+            coroutineScope {
+                launch {
+                    movesAlpha.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 1000,
+                            easing = LinearEasing
+                        )
+                    )
+                }
+                launch {
+                    movesScale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 1000,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+        } else {
+            // Default display animation when > 5
+            displayedMoves = currentMovesRemaining
+            movesAlpha.snapTo(1f)
+            movesScale.snapTo(1f)
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -210,7 +262,9 @@ fun GameScreen(
                 ) {
                     HudStatItem(
                         label = "Remaining Moves",
-                        value = "${state.movesRemainingForTarget}",
+                        value = "$displayedMoves",
+                        alpha = movesAlpha.value,
+                        scale = movesScale.value,
                         modifier = Modifier.weight(1f)
                     )
                     HudStatItem(
@@ -302,7 +356,9 @@ fun GameScreen(
 private fun HudStatItem(
     label: String,
     value: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    scale: Float = 1f
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -324,7 +380,12 @@ private fun HudStatItem(
             fontWeight = FontWeight.Bold,
             color = GreySurface,
             maxLines = 1,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.graphicsLayer {
+                this.alpha = alpha
+                this.scaleX = scale
+                this.scaleY = scale
+            }
         )
     }
 }
