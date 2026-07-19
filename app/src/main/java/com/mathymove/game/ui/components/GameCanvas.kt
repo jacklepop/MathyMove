@@ -59,6 +59,44 @@ fun GameCanvas(
         label = "animOffsetY"
     )
 
+    // Calculate graph distances from activeNodeId via BFS for fade effects
+    val distanceMap = androidx.compose.runtime.remember(nodes, activeNodeId) {
+        val dists = mutableMapOf<String, Int>()
+        val queue = ArrayDeque<String>()
+
+        if (nodes.containsKey(activeNodeId)) {
+            dists[activeNodeId] = 0
+            queue.add(activeNodeId)
+        }
+
+        while (queue.isNotEmpty()) {
+            val currId = queue.removeFirst()
+            val currDist = dists[currId] ?: 0
+
+            val node = nodes[currId] ?: continue
+            val neighbors = mutableListOf<String>()
+            node.parentId?.let { neighbors.add(it) }
+            neighbors.addAll(node.childrenIds)
+
+            for (nbrId in neighbors) {
+                if (nodes.containsKey(nbrId) && !dists.containsKey(nbrId)) {
+                    dists[nbrId] = currDist + 1
+                    queue.add(nbrId)
+                }
+            }
+        }
+        dists
+    }
+
+    fun getAlphaForDistance(dist: Int): Float {
+        return when (dist) {
+            0 -> 1.0f  // Active node & direct radiating lines (100% visible)
+            1 -> 0.7f  // 1 level away (30% transparency)
+            2 -> 0.4f  // 2 levels away (60% transparency)
+            else -> 0.0f
+        }
+    }
+
     val circleRadiusPx = 70f
     val lineStrokePx = 4f
 
@@ -104,10 +142,15 @@ fun GameCanvas(
                     val cScreenX = centerCanvasX + (node.x - animOffsetX)
                     val cScreenY = centerCanvasY + (node.y - animOffsetY)
 
+                    val pDist = distanceMap[parent.id] ?: 2
+                    val cDist = distanceMap[node.id] ?: 2
                     val isConnectedToActive = (node.id == activeNodeId || parent.id == activeNodeId)
 
+                    val lineAlpha = if (isConnectedToActive) 1.0f else minOf(getAlphaForDistance(pDist), getAlphaForDistance(cDist))
+                    val baseLineColor = if (isConnectedToActive) LineActiveColor else LineColor
+
                     drawLine(
-                        color = if (isConnectedToActive) LineActiveColor else LineColor,
+                        color = baseLineColor.copy(alpha = lineAlpha),
                         start = Offset(pScreenX, pScreenY),
                         end = Offset(cScreenX, cScreenY),
                         strokeWidth = if (isConnectedToActive) lineStrokePx * 1.5f else lineStrokePx
@@ -115,13 +158,16 @@ fun GameCanvas(
                 }
             }
 
-            // Step 2: Draw circle nodes & text
+            // Step 2: Draw circle nodes & text with distance-based transparency
             nodes.values.forEach { node ->
                 val screenX = centerCanvasX + (node.x - animOffsetX)
                 val screenY = centerCanvasY + (node.y - animOffsetY)
 
                 val isActive = node.id == activeNodeId
                 val isVisited = node.visited && !isActive
+
+                val nodeDist = distanceMap[node.id] ?: 0
+                val nodeAlpha = getAlphaForDistance(nodeDist)
 
                 val bgColor: Color
                 val textColor: Color
@@ -137,9 +183,9 @@ fun GameCanvas(
                     textColor = NodeNormalText
                 }
 
-                // Draw solid node circle
+                // Draw solid node circle with distance-based opacity
                 drawCircle(
-                    color = bgColor,
+                    color = bgColor.copy(alpha = nodeAlpha),
                     radius = circleRadiusPx,
                     center = Offset(screenX, screenY)
                 )
@@ -147,7 +193,7 @@ fun GameCanvas(
                 // Outer border for active/selectable nodes
                 if (isActive) {
                     drawCircle(
-                        color = LineActiveColor,
+                        color = LineActiveColor.copy(alpha = nodeAlpha),
                         radius = circleRadiusPx + 6f,
                         center = Offset(screenX, screenY),
                         style = Stroke(width = 4f)
@@ -158,7 +204,7 @@ fun GameCanvas(
                 val textLayoutResult = textMeasurer.measure(
                     text = node.value,
                     style = TextStyle(
-                        color = textColor,
+                        color = textColor.copy(alpha = nodeAlpha),
                         fontSize = 24.sp,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
                     )

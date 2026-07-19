@@ -64,6 +64,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 goldenStep = firstStep
             )
 
+            val (prunedNodes, _) = SolvabilityEngine.pruneAndCalculateDistances(expandedNodes, rootId)
+
             val newGameState = GameState(
                 startNumber = startNum,
                 currentValue = startNum,
@@ -73,7 +75,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 movesTakenForTarget = 0,
                 totalMovesTaken = 0,
                 activeNodeId = rootId,
-                nodes = expandedNodes,
+                nodes = prunedNodes,
                 isGameOver = false,
                 hasSavedGame = true
             )
@@ -166,6 +168,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val movesRemainingAfter = (newMovesBudget - resetMovesTaken).coerceAtLeast(0)
         val isLost = movesRemainingAfter == 0 && newCurrentValue != newTargetNum
 
+        // Apply tree pruning from current active nodeId
+        val (finalPrunedNodes, _) = SolvabilityEngine.pruneAndCalculateDistances(updatedNodes, nodeId)
+
         val nextState = currentState.copy(
             currentValue = newCurrentValue,
             pendingOperator = newPendingOp,
@@ -174,7 +179,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             movesTakenForTarget = resetMovesTaken,
             totalMovesTaken = newTotalMoves,
             activeNodeId = nodeId,
-            nodes = updatedNodes,
+            nodes = finalPrunedNodes,
             isGameOver = isLost
         )
 

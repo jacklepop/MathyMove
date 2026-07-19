@@ -122,8 +122,9 @@ object SolvabilityEngine {
 
     /**
      * Expands radiating nodes from `parentNode`.
+     * Radiates 4 lines at every depth layer.
      * Guarantees one golden branch follows `goldenPath` if available.
-     * Ensures diverse non-repetitive operators across all child branches.
+     * Ensures diverse non-repetitive operators across all 4 child branches.
      */
     fun expandNodeChildren(
         parentNode: GameNode,
@@ -133,18 +134,18 @@ object SolvabilityEngine {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
 
-        // 4 Radiating directions: 0°, 90°, 180°, 270° relative to parent's angle or absolute cardinal directions
+        // 4 Radiating directions at EVERY depth layer
         val baseAngles = if (parentNode.depth == 0) {
             listOf(0f, 90f, 180f, 270f)
         } else {
             val parentAngle = parentNode.directionAngle
-            listOf(parentAngle - 40f, parentAngle, parentAngle + 40f)
+            listOf(parentAngle - 54f, parentAngle - 18f, parentAngle + 18f, parentAngle + 54f)
         }
 
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
         val goldenBranchIndex = Random.nextInt(0, baseAngles.size)
 
-        // Prepare pool of distinct operators to prevent duplicate symbols across branches
+        // Prepare pool of distinct operators (+, -, x, ÷) to prevent duplicate symbols across the 4 branches
         val availableOperators = mutableListOf("+", "-", "x", "÷").shuffled().toMutableList()
         if (nextType == NodeType.OPERATOR && goldenStep != null) {
             val goldenOp = goldenStep.first
@@ -192,5 +193,59 @@ object SolvabilityEngine {
         newNodes[parentNode.id] = updatedParent
 
         return Pair(newNodes, createdChildIds)
+    }
+
+    /**
+     * Tree Pruning and Distance Calculator:
+     * Calculates graph distances from `activeNodeId` via BFS.
+     * Prunes (deletes) all nodes 3 or more levels away from memory and state.
+     * Returns the pruned node map and the graph distance map (0 = active, 1 = 1 level, 2 = 2 levels).
+     */
+    fun pruneAndCalculateDistances(
+        nodes: Map<String, GameNode>,
+        activeNodeId: String
+    ): Pair<Map<String, GameNode>, Map<String, Int>> {
+        val distances = mutableMapOf<String, Int>()
+        val queue = ArrayDeque<String>()
+
+        if (nodes.containsKey(activeNodeId)) {
+            distances[activeNodeId] = 0
+            queue.add(activeNodeId)
+        }
+
+        while (queue.isNotEmpty()) {
+            val currId = queue.removeFirst()
+            val currDist = distances[currId] ?: 0
+
+            if (currDist < 3) {
+                val node = nodes[currId] ?: continue
+                val neighbors = mutableListOf<String>()
+                node.parentId?.let { neighbors.add(it) }
+                neighbors.addAll(node.childrenIds)
+
+                for (nbrId in neighbors) {
+                    if (nodes.containsKey(nbrId) && !distances.containsKey(nbrId)) {
+                        distances[nbrId] = currDist + 1
+                        queue.add(nbrId)
+                    }
+                }
+            }
+        }
+
+        // Prune nodes at distance >= 3 from state and memory
+        val prunedNodes = nodes.filterKeys { id ->
+            val dist = distances[id]
+            dist != null && dist <= 2
+        }.toMutableMap()
+
+        // Clean up references to pruned nodes in parentId & childrenIds
+        val cleanedNodes = prunedNodes.mapValues { (_, node) ->
+            node.copy(
+                childrenIds = node.childrenIds.filter { prunedNodes.containsKey(it) },
+                parentId = if (node.parentId != null && prunedNodes.containsKey(node.parentId)) node.parentId else null
+            )
+        }
+
+        return Pair(cleanedNodes, distances)
     }
 }
