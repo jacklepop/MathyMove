@@ -137,10 +137,10 @@ fun GameScreen(
             ) {
                 androidx.compose.material3.IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(43.dp)
                 ) {
-                    androidx.compose.foundation.Canvas(modifier = Modifier.size(20.dp)) {
-                        val strokeWidth = 2.5.dp.toPx()
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(24.dp)) {
+                        val strokeWidth = 3.dp.toPx()
                         val color = GreySurface
                         drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, size.height * 0.2f), end = androidx.compose.ui.geometry.Offset(size.width, size.height * 0.2f), strokeWidth = strokeWidth)
                         drawLine(color = color, start = androidx.compose.ui.geometry.Offset(0f, size.height * 0.5f), end = androidx.compose.ui.geometry.Offset(size.width, size.height * 0.5f), strokeWidth = strokeWidth)
@@ -154,20 +154,20 @@ fun GameScreen(
                     modifier = Modifier.background(GreySurface)
                 ) {
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("Continue Game", color = TextPrimary, fontWeight = FontWeight.Medium) },
+                        text = { Text("Continue Game", color = TextPrimary, fontSize = 16.8.sp, fontWeight = FontWeight.Medium) },
                         onClick = {
                             showMenu = false
                         }
                     )
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("New Game", color = TextPrimary, fontWeight = FontWeight.Medium) },
+                        text = { Text("New Game", color = TextPrimary, fontSize = 16.8.sp, fontWeight = FontWeight.Medium) },
                         onClick = {
                             showMenu = false
                             onTryAgain()
                         }
                     )
                     androidx.compose.material3.DropdownMenuItem(
-                        text = { Text("High scores", color = TextPrimary, fontWeight = FontWeight.Medium) },
+                        text = { Text("High scores", color = TextPrimary, fontSize = 16.8.sp, fontWeight = FontWeight.Medium) },
                         onClick = {
                             showMenu = false
                             showHighScoreDialog = true
@@ -182,7 +182,7 @@ fun GameScreen(
             ) {
                 Text(
                     text = "TARGET",
-                    fontSize = 11.sp,
+                    fontSize = 13.2.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
                     letterSpacing = 2.sp
@@ -190,7 +190,7 @@ fun GameScreen(
 
                 Text(
                     text = "$displayedTarget",
-                    fontSize = 44.sp,
+                    fontSize = 52.8.sp,
                     fontWeight = FontWeight.Light,
                     color = GreySurface,
                     modifier = Modifier.graphicsLayer {
@@ -235,7 +235,7 @@ fun GameScreen(
                 title = {
                     Text(
                         text = "Try again",
-                        fontSize = 24.sp,
+                        fontSize = 28.8.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
                         textAlign = TextAlign.Center,
@@ -249,20 +249,20 @@ fun GameScreen(
                     ) {
                         Text(
                             text = "Moves ran out before reaching the target.",
-                            fontSize = 15.sp,
+                            fontSize = 18.sp,
                             color = TextSecondary,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Target was: ${state.targetNumber}",
-                            fontSize = 16.sp,
+                            fontSize = 19.2.sp,
                             fontWeight = FontWeight.Medium,
                             color = TextPrimary
                         )
                         Text(
                             text = "Your current value: ${state.currentValue}",
-                            fontSize = 16.sp,
+                            fontSize = 19.2.sp,
                             color = TextSecondary
                         )
                     }
@@ -281,7 +281,7 @@ fun GameScreen(
                     ) {
                         Text(
                             text = "New Game",
-                            fontSize = 16.sp,
+                            fontSize = 19.2.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -310,7 +310,7 @@ private fun HudStatItem(
     ) {
         Text(
             text = label.uppercase(),
-            fontSize = 9.5.sp,
+            fontSize = 11.4.sp,
             fontWeight = FontWeight.SemiBold,
             color = TextSecondary,
             letterSpacing = 0.5.sp,
@@ -320,7 +320,7 @@ private fun HudStatItem(
         Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = value,
-            fontSize = 17.sp,
+            fontSize = 20.4.sp,
             fontWeight = FontWeight.Bold,
             color = GreySurface,
             maxLines = 1,

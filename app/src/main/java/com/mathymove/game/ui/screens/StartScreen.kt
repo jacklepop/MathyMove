@@ -59,7 +59,7 @@ fun StartScreen(
             // Minimal Title Header
             Text(
                 text = "MathyMove",
-                fontSize = 42.sp,
+                fontSize = 50.4.sp,
                 fontWeight = FontWeight.Light,
                 color = TextPrimary,
                 letterSpacing = 4.sp,
@@ -70,7 +70,7 @@ fun StartScreen(
 
             Text(
                 text = "Keep your mind active through endless numerical pathways",
-                fontSize = 14.sp,
+                fontSize = 16.8.sp,
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -97,7 +97,7 @@ fun StartScreen(
                     ) {
                         Text(
                             text = "Continue Game",
-                            fontSize = 18.sp,
+                            fontSize = 21.6.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -120,7 +120,7 @@ fun StartScreen(
                 ) {
                     Text(
                         text = "New Game",
-                        fontSize = 18.sp,
+                        fontSize = 21.6.sp,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -138,7 +138,7 @@ fun StartScreen(
                 ) {
                     Text(
                         text = "New Game",
-                        fontSize = 18.sp,
+                        fontSize = 21.6.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -159,7 +159,7 @@ fun StartScreen(
             ) {
                 Text(
                     text = "High Scores",
-                    fontSize = 16.sp,
+                    fontSize = 19.2.sp,
                     fontWeight = FontWeight.Normal
                 )
             }

@@ -47,7 +47,7 @@ fun HighScoreDialog(
         title = {
             Text(
                 text = "Top 10 High Scores",
-                fontSize = 22.sp,
+                fontSize = 26.4.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,
                 textAlign = TextAlign.Center,
@@ -58,7 +58,7 @@ fun HighScoreDialog(
             if (highScores.isEmpty()) {
                 Text(
                     text = "No high scores recorded yet. Reach a target number to score points!",
-                    fontSize = 14.sp,
+                    fontSize = 16.8.sp,
                     color = TextSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
@@ -88,7 +88,7 @@ fun HighScoreDialog(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         text = "#${index + 1}",
-                                        fontSize = 15.sp,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = TextSecondary,
                                         modifier = Modifier.padding(end = 12.dp)
@@ -96,13 +96,13 @@ fun HighScoreDialog(
                                     Column {
                                         Text(
                                             text = "${entry.score} pts",
-                                            fontSize = 16.sp,
+                                            fontSize = 19.2.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = TextPrimary
                                         )
                                         Text(
                                             text = entry.formattedDateTime,
-                                            fontSize = 12.sp,
+                                            fontSize = 14.4.sp,
                                             color = TextSecondary
                                         )
                                     }
@@ -114,7 +114,7 @@ fun HighScoreDialog(
                         }
                     }
 
-                    // Custom Scrollbar: Light grey 20px height x 4px width rounded scrollbar at right side
+                    // Custom Scrollbar: Light grey 24dp height x 4.8dp width rounded scrollbar at right side
                     val layoutInfo = listState.layoutInfo
                     val visibleItemsInfo = layoutInfo.visibleItemsInfo
                     val totalItems = layoutInfo.totalItemsCount
@@ -132,12 +132,12 @@ fun HighScoreDialog(
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .padding(top = (240 * scrollFraction).dp, end = 2.dp)
-                                    .width(4.dp)
-                                    .height(20.dp)
+                                    .padding(top = (236 * scrollFraction).dp, end = 2.dp)
+                                    .width(4.8.dp)
+                                    .height(24.dp)
                                     .background(
                                         color = GreyBorder,
-                                        shape = RoundedCornerShape(2.dp)
+                                        shape = RoundedCornerShape(2.4.dp)
                                     )
                             )
                         }
@@ -159,7 +159,7 @@ fun HighScoreDialog(
             ) {
                 Text(
                     text = "Close",
-                    fontSize = 16.sp,
+                    fontSize = 19.2.sp,
                     fontWeight = FontWeight.Medium
                 )
             }

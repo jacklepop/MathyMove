@@ -136,8 +136,8 @@ fun GameCanvas(
         animAlpha
     }
 
-    val circleRadiusPx = 70f
-    val lineStrokePx = 4f
+    val circleRadiusPx = 84f
+    val lineStrokePx = 4.8f
 
     Box(
         modifier = modifier
@@ -158,7 +158,7 @@ fun GameCanvas(
                         val screenNodeY = centerCanvasY + (worldNodeY - animOffsetY)
 
                         val dist = hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY)
-                        if (dist <= circleRadiusPx + 15f) {
+                        if (dist <= circleRadiusPx + 18f) {
                             if (!node.visited) {
                                 onNodeTapped(node.id)
                             }
@@ -234,9 +234,9 @@ fun GameCanvas(
                     if (isActive) {
                         drawCircle(
                             color = LineActiveColor,
-                            radius = circleRadiusPx + 6f,
+                            radius = circleRadiusPx + 7.2f,
                             center = Offset(screenX, screenY),
-                            style = Stroke(width = 4f)
+                            style = Stroke(width = 4.8f)
                         )
                     }
 
@@ -245,7 +245,7 @@ fun GameCanvas(
                         text = node.value,
                         style = TextStyle(
                             color = if (isActive) textColor else textColor.copy(alpha = nodeAlpha),
-                            fontSize = 24.sp,
+                            fontSize = 28.8.sp,
                             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
                         )
                     )
@@ -275,7 +275,7 @@ fun GameCanvas(
                             text = activeRemainder.text,
                             style = TextStyle(
                                 color = textColor.copy(alpha = remAlpha),
-                                fontSize = 22.sp,
+                                fontSize = 26.4.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         )
