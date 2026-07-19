@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -56,63 +57,65 @@ fun GameScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Floating Minimal Top HUD
-        Column(
+        // Edge-to-Edge Top Black Box HUD (No surrounding gaps)
+        Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(16.dp)
+                .background(
+                    color = NodeActiveBackground,
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                )
+                .statusBarsPadding()
+                .padding(vertical = 16.dp, horizontal = 12.dp)
         ) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = NodeActiveBackground
-                ),
-                shape = RoundedCornerShape(24.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Text(
+                    text = "TARGET",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 2.sp
+                )
+
+                Text(
+                    text = "${state.targetNumber}",
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.Light,
+                    color = GreySurface
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 4 Equal-width columns so stat text has room to breathe with no overlap
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "TARGET",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary,
-                        letterSpacing = 2.sp
+                    HudStatItem(
+                        label = "Remaining",
+                        value = "${state.movesRemainingForTarget}",
+                        modifier = Modifier.weight(1f)
                     )
-
-                    Text(
-                        text = "${state.targetNumber}",
-                        fontSize = 44.sp,
-                        fontWeight = FontWeight.Light,
-                        color = GreySurface
+                    HudStatItem(
+                        label = "Budget",
+                        value = "${state.movesBeforeCalculation}",
+                        modifier = Modifier.weight(1f)
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        HudStatItem(
-                            label = "Budget",
-                            value = "${state.movesBeforeCalculation}"
-                        )
-                        HudStatItem(
-                            label = "Remaining",
-                            value = "${state.movesRemainingForTarget}"
-                        )
-                        HudStatItem(
-                            label = "Moves Taken",
-                            value = "${state.movesTakenForTarget}"
-                        )
-                        HudStatItem(
-                            label = "Current",
-                            value = "${state.currentValue}${state.pendingOperator?.let { " $it" } ?: ""}"
-                        )
-                    }
+                    HudStatItem(
+                        label = "Moves Taken",
+                        value = "${state.movesTakenForTarget}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    HudStatItem(
+                        label = "Current",
+                        value = "${state.currentValue}${state.pendingOperator?.let { " $it" } ?: ""}",
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -184,22 +187,31 @@ fun GameScreen(
 @Composable
 private fun HudStatItem(
     label: String,
-    value: String
+    value: String,
+    modifier: Modifier = Modifier
 ) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+    ) {
         Text(
             text = label.uppercase(),
-            fontSize = 10.sp,
+            fontSize = 9.5.sp,
             fontWeight = FontWeight.SemiBold,
             color = TextSecondary,
-            letterSpacing = 1.sp
+            letterSpacing = 0.5.sp,
+            maxLines = 1,
+            textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = value,
-            fontSize = 16.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
-            color = GreySurface
+            color = GreySurface,
+            maxLines = 1,
+            textAlign = TextAlign.Center
         )
     }
 }
+
