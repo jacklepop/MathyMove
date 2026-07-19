@@ -162,11 +162,21 @@ object SolvabilityEngine {
             availableOperators.remove(goldenOp)
         }
 
-        // Clean divisors pool for division operator parent
-        val cleanDivisors = if (parentNode.type == NodeType.OPERATOR && (parentNode.value == "÷" || parentNode.value == "/")) {
-            (1..10).filter { it != 0 && currentValue % it == 0 }
+        // Prepare pool of distinct numbers to ensure NO duplicate numbers across the 3 child branches
+        val availableNumbers = if (parentNode.type == NodeType.OPERATOR && (parentNode.value == "÷" || parentNode.value == "/")) {
+            val cleanDivs = (1..10).filter { it != 0 && currentValue % it == 0 }.toMutableList()
+            if (cleanDivs.size < 3) {
+                val extraDivs = (11..30).filter { it != 0 && currentValue % it == 0 }
+                cleanDivs.addAll(extraDivs)
+            }
+            cleanDivs.distinct().shuffled().toMutableList()
         } else {
-            emptyList()
+            (1..10).shuffled().toMutableList()
+        }
+
+        if (nextType == NodeType.NUMBER && goldenStep != null) {
+            val goldenNum = goldenStep.second
+            availableNumbers.remove(goldenNum)
         }
 
         baseAngles.forEachIndexed { index, angleDeg ->
@@ -186,7 +196,7 @@ object SolvabilityEngine {
                 if (isGolden) {
                     goldenStep!!.second.toString()
                 } else {
-                    if (cleanDivisors.isNotEmpty()) cleanDivisors.random().toString() else Random.nextInt(1, 11).toString()
+                    if (availableNumbers.isNotEmpty()) availableNumbers.removeAt(0).toString() else Random.nextInt(1, 11).toString()
                 }
             }
 
