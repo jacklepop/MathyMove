@@ -176,9 +176,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 repository.addHighScore(newScore)
             }
 
-            // Dynamically generate next goal & move budget
+            // Dynamically generate next goal number
             newTargetNum = SolvabilityEngine.generateTargetNumber(newTotalMoves)
-            newMovesBudget = SolvabilityEngine.generateMovesBeforeCalculation(newTotalMoves)
+
+            // Retain remaining moves before this step and add 8 bonus moves
+            val remainingMovesBefore = (currentState.movesBeforeCalculation - currentState.movesTakenForTarget).coerceAtLeast(0)
+            newMovesBudget = remainingMovesBefore + 8
             resetMovesTaken = 0
         }
 

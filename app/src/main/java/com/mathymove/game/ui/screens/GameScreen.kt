@@ -37,7 +37,14 @@ import com.mathymove.game.ui.theme.GreyBackground
 import com.mathymove.game.ui.theme.GreySurface
 import com.mathymove.game.ui.theme.NodeActiveBackground
 import com.mathymove.game.ui.theme.TextPrimary
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import com.mathymove.game.ui.theme.TextSecondary
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun GameScreen(
@@ -49,6 +56,52 @@ fun GameScreen(
 ) {
     var showMenu by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
     var showHighScoreDialog by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+
+    // Target Number Animation (Fade out in 0.5s -> Fade in 1.0s & scale 200% down to 100%)
+    var displayedTarget by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(state.targetNumber) }
+    val targetAlpha = androidx.compose.runtime.remember { Animatable(1f) }
+    val targetScale = androidx.compose.runtime.remember { Animatable(1f) }
+
+    androidx.compose.runtime.LaunchedEffect(state.targetNumber) {
+        if (state.targetNumber != displayedTarget) {
+            // Phase 1: Fade out old target to 0 visibility in 0.5 seconds (500ms)
+            targetAlpha.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 500,
+                    easing = LinearEasing
+                )
+            )
+
+            // Update displayed target value
+            displayedTarget = state.targetNumber
+
+            // Reset scale to 200% (2.0f) and alpha to 0 for Phase 2
+            targetScale.snapTo(2f)
+
+            // Phase 2: Fade in to 100% visibility & scale down to 100% size over 1.0 second (1000ms)
+            coroutineScope {
+                launch {
+                    targetAlpha.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 1000,
+                            easing = LinearEasing
+                        )
+                    )
+                }
+                launch {
+                    targetScale.animateTo(
+                        targetValue = 1f,
+                        animationSpec = tween(
+                            durationMillis = 1000,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                }
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -135,10 +188,15 @@ fun GameScreen(
                 )
 
                 Text(
-                    text = "${state.targetNumber}",
+                    text = "$displayedTarget",
                     fontSize = 44.sp,
                     fontWeight = FontWeight.Light,
-                    color = GreySurface
+                    color = GreySurface,
+                    modifier = Modifier.graphicsLayer {
+                        this.alpha = targetAlpha.value
+                        this.scaleX = targetScale.value
+                        this.scaleY = targetScale.value
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
