@@ -112,6 +112,7 @@ fun GameScreen(
         GameCanvas(
             nodes = state.nodes,
             activeNodeId = state.activeNodeId,
+            activeRemainder = state.activeRemainder,
             onNodeTapped = onNodeTapped,
             modifier = Modifier.fillMaxSize()
         )

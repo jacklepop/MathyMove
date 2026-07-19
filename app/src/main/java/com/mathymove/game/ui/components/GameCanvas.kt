@@ -21,6 +21,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.drawscope.withTransform
+import com.mathymove.game.model.DroppedRemainder
 import com.mathymove.game.model.GameNode
 import com.mathymove.game.ui.theme.GreyBackground
 import com.mathymove.game.ui.theme.LineActiveColor
@@ -37,11 +44,28 @@ import kotlin.math.hypot
 fun GameCanvas(
     nodes: Map<String, GameNode>,
     activeNodeId: String,
+    activeRemainder: DroppedRemainder? = null,
     onNodeTapped: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val textMeasurer = rememberTextMeasurer()
     val activeNode = nodes[activeNodeId]
+
+    // Remainder break-off animation controller (3 seconds / 3000ms)
+    val remainderProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(activeRemainder?.timestamp) {
+        if (activeRemainder != null) {
+            remainderProgress.snapTo(0f)
+            remainderProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 3000,
+                    easing = LinearEasing
+                )
+            )
+        }
+    }
 
     // Smooth panning target offset to center view on active node
     val targetOffsetX = activeNode?.x ?: 0f
@@ -233,6 +257,40 @@ fun GameCanvas(
                             y = screenY - (textLayoutResult.size.height / 2f)
                         )
                     )
+
+                    // Draw Breaking-Off Remainder Animation (shrinks size to 0, rotates 90° CW, fades 100% -> 0% over 3s)
+                    if (activeRemainder != null && activeRemainder.nodeId == node.id && remainderProgress.value < 1.0f) {
+                        val prog = remainderProgress.value
+                        val remScale = (1.0f - prog).coerceAtLeast(0.001f)
+                        val remRotation = prog * 90f // Rotates 90 degrees clockwise over 3 seconds
+                        val remAlpha = (1.0f - prog) * nodeAlpha
+                        val remOffsetX = prog * 40f  // Break-off drift right
+                        val remOffsetY = prog * 20f  // Break-off drift down
+
+                        val mainWidth = textLayoutResult.size.width
+                        val startX = screenX + (mainWidth / 2f) + 4f + remOffsetX
+                        val startY = screenY + remOffsetY
+
+                        val remTextLayout = textMeasurer.measure(
+                            text = activeRemainder.text,
+                            style = TextStyle(
+                                color = textColor.copy(alpha = remAlpha),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+
+                        withTransform({
+                            translate(left = startX, top = startY)
+                            rotate(degrees = remRotation, pivot = Offset.Zero)
+                            scale(scaleX = remScale, scaleY = remScale, pivot = Offset.Zero)
+                        }) {
+                            drawText(
+                                textLayoutResult = remTextLayout,
+                                topLeft = Offset(0f, -remTextLayout.size.height / 2f)
+                            )
+                        }
+                    }
                 }
             }
         }

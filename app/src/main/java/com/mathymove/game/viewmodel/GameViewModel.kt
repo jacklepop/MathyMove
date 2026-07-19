@@ -125,13 +125,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         var newCurrentValue = currentState.currentValue
         var newPendingOp = currentState.pendingOperator
         val updatedNodes = currentState.nodes.toMutableMap()
+        var remainderObj: com.mathymove.game.model.DroppedRemainder? = null
 
         if (targetNode.type == NodeType.OPERATOR) {
             newPendingOp = targetNode.value
         } else if (targetNode.type == NodeType.NUMBER) {
             val numberVal = targetNode.value.toIntOrNull() ?: 0
             if (newPendingOp != null) {
-                newCurrentValue = SolvabilityEngine.applyOp(newCurrentValue, newPendingOp, numberVal)
+                val (calcVal, remainderText) = SolvabilityEngine.applyOpWithRemainder(newCurrentValue, newPendingOp, numberVal)
+                newCurrentValue = calcVal
+                if (remainderText != null) {
+                    remainderObj = com.mathymove.game.model.DroppedRemainder(
+                        text = remainderText,
+                        nodeId = nodeId,
+                        timestamp = System.currentTimeMillis()
+                    )
+                }
                 newPendingOp = null
             } else {
                 newCurrentValue = numberVal
@@ -201,7 +210,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             score = newScore,
             activeNodeId = nodeId,
             nodes = finalPrunedNodes,
-            isGameOver = isLost
+            isGameOver = isLost,
+            activeRemainder = remainderObj
         )
 
         _uiState.value = nextState

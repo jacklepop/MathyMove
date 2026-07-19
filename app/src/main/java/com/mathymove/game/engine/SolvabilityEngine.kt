@@ -110,22 +110,41 @@ object SolvabilityEngine {
         }
     }
 
+    fun calculateDivisionAndRemainder(value: Int, divisor: Int): Pair<Int, String?> {
+        if (divisor == 0) return Pair(value, null)
+        val exact = value.toDouble() / divisor.toDouble()
+        // Round off to 1 decimal place
+        val rounded1Dec = (kotlin.math.round(exact * 10.0) / 10.0)
+        val mainVal = kotlin.math.floor(rounded1Dec).toInt()
+        val dec = rounded1Dec - mainVal
+        val remainderText = if (dec > 0.01) {
+            val decStr = String.format(java.util.Locale.US, "%.1f", dec)
+            if (decStr.startsWith("0.")) decStr.substring(1) else decStr
+        } else {
+            null
+        }
+        return Pair(mainVal, remainderText)
+    }
+
     fun applyOp(value: Int, op: String, number: Int): Int {
+        return applyOpWithRemainder(value, op, number).first
+    }
+
+    fun applyOpWithRemainder(value: Int, op: String, number: Int): Pair<Int, String?> {
         return when (op) {
-            "+" -> value + number
-            "-" -> value - number
-            "x", "*", "×" -> value * number
-            "÷", "/" -> if (number != 0 && value % number == 0) value / number else value
-            else -> value
+            "+" -> Pair(value + number, null)
+            "-" -> Pair(value - number, null)
+            "x", "*", "×" -> Pair(value * number, null)
+            "÷", "/" -> if (number != 0) calculateDivisionAndRemainder(value, number) else Pair(value, null)
+            else -> Pair(value, null)
         }
     }
 
     /**
      * Expands radiating nodes from `parentNode`.
-     * Radiates 4 lines at every depth layer.
+     * Radiates 3 lines at every depth layer.
      * Guarantees one golden branch follows `goldenPath` if available.
-     * Ensures diverse non-repetitive operators across all 4 child branches.
-     * Enforces strict whole-number division with no remainder/decimals.
+     * Ensures diverse non-repetitive operators and numbers across all 3 child branches.
      */
     fun expandNodeChildren(
         parentNode: GameNode,
@@ -144,35 +163,19 @@ object SolvabilityEngine {
             listOf(parentAngle - 40f, parentAngle, parentAngle + 40f)
         }
 
+        val goldenBranchIndex = if (goldenStep != null) Random.nextInt(0, 3) else -1
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
-        val goldenBranchIndex = Random.nextInt(0, baseAngles.size)
-
-        // Check if currentValue can be cleanly divided by any integer in 2..10
-        val canDivideCleanly = (currentValue == 0) || (2..10).any { it != 0 && currentValue % it == 0 }
 
         // Prepare pool of distinct operators (+, -, x, ÷) to ensure no duplicate operators across the 3 branches
-        val availableOperators = mutableListOf("+", "-", "x", "÷")
-        if (!canDivideCleanly) {
-            availableOperators.remove("÷") // Do not present division if clean division is impossible
-        }
-        availableOperators.shuffle()
+        val availableOperators = mutableListOf("+", "-", "x", "÷").shuffled().toMutableList()
 
         if (nextType == NodeType.OPERATOR && goldenStep != null) {
             val goldenOp = goldenStep.first
             availableOperators.remove(goldenOp)
         }
 
-        // Prepare pool of distinct numbers to ensure NO duplicate numbers across the 3 child branches
-        val availableNumbers = if (parentNode.type == NodeType.OPERATOR && (parentNode.value == "÷" || parentNode.value == "/")) {
-            val cleanDivs = (1..10).filter { it != 0 && currentValue % it == 0 }.toMutableList()
-            if (cleanDivs.size < 3) {
-                val extraDivs = (11..30).filter { it != 0 && currentValue % it == 0 }
-                cleanDivs.addAll(extraDivs)
-            }
-            cleanDivs.distinct().shuffled().toMutableList()
-        } else {
-            (1..10).shuffled().toMutableList()
-        }
+        // Prepare pool of distinct numbers (1..10) to ensure NO duplicate numbers across the 3 child branches
+        val availableNumbers = (1..10).shuffled().toMutableList()
 
         if (nextType == NodeType.NUMBER && goldenStep != null) {
             val goldenNum = goldenStep.second
