@@ -90,30 +90,20 @@ fun GameScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 4 Equal-width columns so stat text has room to breathe with no overlap
+                // 2 Equal-width columns so stat text has maximum room to breathe
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     HudStatItem(
-                        label = "Remaining",
+                        label = "Remaining Moves",
                         value = "${state.movesRemainingForTarget}",
-                        modifier = Modifier.weight(1f)
-                    )
-                    HudStatItem(
-                        label = "Budget",
-                        value = "${state.movesBeforeCalculation}",
                         modifier = Modifier.weight(1f)
                     )
                     HudStatItem(
                         label = "Moves Taken",
                         value = "${state.movesTakenForTarget}",
-                        modifier = Modifier.weight(1f)
-                    )
-                    HudStatItem(
-                        label = "Current",
-                        value = "${state.currentValue}${state.pendingOperator?.let { " $it" } ?: ""}",
                         modifier = Modifier.weight(1f)
                     )
                 }

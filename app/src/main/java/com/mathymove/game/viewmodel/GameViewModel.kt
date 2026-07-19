@@ -127,8 +127,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Mark tapped node as visited and set active
-        val updatedTargetNode = targetNode.copy(visited = true)
+        // Mark tapped node as visited and update number circle value to calculated result
+        val updatedTargetNode = if (targetNode.type == NodeType.NUMBER) {
+            targetNode.copy(visited = true, value = newCurrentValue.toString())
+        } else {
+            targetNode.copy(visited = true)
+        }
         val updatedNodes = currentState.nodes.toMutableMap()
         updatedNodes[nodeId] = updatedTargetNode
 
