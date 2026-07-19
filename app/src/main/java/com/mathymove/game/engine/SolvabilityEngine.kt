@@ -8,7 +8,7 @@ import kotlin.random.Random
 
 object SolvabilityEngine {
 
-    private const val NODE_DISTANCE = 288f // Spacing between radiating nodes
+    private const val NODE_DISTANCE = 346f // Spacing between radiating nodes
 
     fun generateTargetNumber(totalMovesTaken: Int): Int {
         return if (totalMovesTaken >= 200) {
@@ -160,7 +160,7 @@ object SolvabilityEngine {
             listOf(0f, 120f, 240f)
         } else {
             val parentAngle = parentNode.directionAngle
-            listOf(parentAngle - 40f, parentAngle, parentAngle + 40f)
+            listOf(parentAngle - 60f, parentAngle, parentAngle + 60f)
         }
 
         val goldenBranchIndex = if (goldenStep != null) Random.nextInt(0, 3) else -1
