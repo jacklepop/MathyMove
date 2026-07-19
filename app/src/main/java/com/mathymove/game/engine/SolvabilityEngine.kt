@@ -125,11 +125,13 @@ object SolvabilityEngine {
      * Radiates 4 lines at every depth layer.
      * Guarantees one golden branch follows `goldenPath` if available.
      * Ensures diverse non-repetitive operators across all 4 child branches.
+     * Enforces strict whole-number division with no remainder/decimals.
      */
     fun expandNodeChildren(
         parentNode: GameNode,
         existingNodes: Map<String, GameNode>,
-        goldenStep: Pair<String, Int>? = null
+        goldenStep: Pair<String, Int>? = null,
+        currentValue: Int = 0
     ): Pair<Map<String, GameNode>, List<String>> {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
@@ -145,12 +147,26 @@ object SolvabilityEngine {
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
         val goldenBranchIndex = Random.nextInt(0, baseAngles.size)
 
-        // Prepare pool of distinct operators (+, -, x, ÷) to prevent duplicate symbols across the 4 branches
-        val availableOperators = mutableListOf("+", "-", "x", "÷").shuffled().toMutableList()
+        // Check if currentValue can be cleanly divided by any integer in 2..10
+        val canDivideCleanly = (currentValue == 0) || (2..10).any { it != 0 && currentValue % it == 0 }
+
+        // Prepare pool of distinct operators (+, -, x, ÷)
+        val availableOperators = mutableListOf("+", "-", "x", "÷")
+        if (!canDivideCleanly) {
+            availableOperators.remove("÷") // Do not present division if clean division is impossible
+        }
+        availableOperators.shuffle()
+
         if (nextType == NodeType.OPERATOR && goldenStep != null) {
             val goldenOp = goldenStep.first
-            // Ensure golden operator is prioritized at golden branch, then remove from pool
             availableOperators.remove(goldenOp)
+        }
+
+        // Clean divisors pool for division operator parent
+        val cleanDivisors = if (parentNode.type == NodeType.OPERATOR && (parentNode.value == "÷" || parentNode.value == "/")) {
+            (1..10).filter { it != 0 && currentValue % it == 0 }
+        } else {
+            emptyList()
         }
 
         baseAngles.forEachIndexed { index, angleDeg ->
@@ -164,10 +180,14 @@ object SolvabilityEngine {
                 if (isGolden) {
                     goldenStep!!.first
                 } else {
-                    if (availableOperators.isNotEmpty()) availableOperators.removeAt(0) else listOf("+", "-", "x", "÷").random()
+                    if (availableOperators.isNotEmpty()) availableOperators.removeAt(0) else listOf("+", "-", "x").random()
                 }
             } else {
-                if (isGolden) goldenStep!!.second.toString() else Random.nextInt(1, 11).toString()
+                if (isGolden) {
+                    goldenStep!!.second.toString()
+                } else {
+                    if (cleanDivisors.isNotEmpty()) cleanDivisors.random().toString() else Random.nextInt(1, 11).toString()
+                }
             }
 
             val childId = "node_${parentNode.depth + 1}_${System.nanoTime()}_$index"

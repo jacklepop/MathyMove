@@ -61,7 +61,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val (expandedNodes, _) = SolvabilityEngine.expandNodeChildren(
                 parentNode = rootNode,
                 existingNodes = initialNodes,
-                goldenStep = firstStep
+                goldenStep = firstStep,
+                currentValue = startNum
             )
 
             val (prunedNodes, _) = SolvabilityEngine.pruneAndCalculateDistances(expandedNodes, rootId)
@@ -116,9 +117,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         var newCurrentValue = currentState.currentValue
         var newPendingOp = currentState.pendingOperator
+        val updatedNodes = currentState.nodes.toMutableMap()
 
         if (targetNode.type == NodeType.OPERATOR) {
             newPendingOp = targetNode.value
+            // Attach operator to current active number node so main circle displays "5 x" or "10 ÷"
+            val currentActiveNode = currentState.nodes[currentState.activeNodeId]
+            if (currentActiveNode != null) {
+                val attachedValue = "${currentState.currentValue} $newPendingOp"
+                updatedNodes[currentActiveNode.id] = currentActiveNode.copy(value = attachedValue)
+            }
         } else if (targetNode.type == NodeType.NUMBER) {
             val numberVal = targetNode.value.toIntOrNull() ?: 0
             if (newPendingOp != null) {
@@ -135,7 +143,6 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             targetNode.copy(visited = true)
         }
-        val updatedNodes = currentState.nodes.toMutableMap()
         updatedNodes[nodeId] = updatedTargetNode
 
         // Expand children if this node has no children generated yet
@@ -147,7 +154,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val (nodesWithChildren, _) = SolvabilityEngine.expandNodeChildren(
                 parentNode = updatedTargetNode,
                 existingNodes = updatedNodes,
-                goldenStep = nextGoldenStep
+                goldenStep = nextGoldenStep,
+                currentValue = newCurrentValue
             )
             updatedNodes.clear()
             updatedNodes.putAll(nodesWithChildren)

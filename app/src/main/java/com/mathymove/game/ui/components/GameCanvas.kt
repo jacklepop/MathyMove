@@ -183,10 +183,14 @@ fun GameCanvas(
                     textColor = NodeNormalText
                 }
 
+                // Increase radius for active circle when attached operator is present (e.g. "5 x")
+                val isExpandedCircle = isActive && node.value.contains(" ")
+                val currentRadiusPx = if (isExpandedCircle) 95f else circleRadiusPx
+
                 // Draw solid node circle with distance-based opacity
                 drawCircle(
                     color = bgColor.copy(alpha = nodeAlpha),
-                    radius = circleRadiusPx,
+                    radius = currentRadiusPx,
                     center = Offset(screenX, screenY)
                 )
 
@@ -194,7 +198,7 @@ fun GameCanvas(
                 if (isActive) {
                     drawCircle(
                         color = LineActiveColor.copy(alpha = nodeAlpha),
-                        radius = circleRadiusPx + 6f,
+                        radius = currentRadiusPx + 6f,
                         center = Offset(screenX, screenY),
                         style = Stroke(width = 4f)
                     )
@@ -205,7 +209,7 @@ fun GameCanvas(
                     text = node.value,
                     style = TextStyle(
                         color = textColor.copy(alpha = nodeAlpha),
-                        fontSize = 24.sp,
+                        fontSize = if (isExpandedCircle) 22.sp else 24.sp,
                         fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
                     )
                 )
