@@ -199,16 +199,16 @@ fun GameCanvas(
                 }
             }
 
-            // Step 2: Draw circle nodes & text with 1.5s smooth fade out animation
+            // Step 2: Draw circle nodes & text (Active circle unaffected by fade/visibility changes)
             nodes.values.forEach { node ->
                 val screenX = centerCanvasX + (node.x - animOffsetX)
                 val screenY = centerCanvasY + (node.y - animOffsetY)
 
                 val isActive = node.id == activeNodeId
                 val isVisited = node.visited && !isActive
-                val nodeAlpha = nodeAlphaMap[node.id] ?: 0f
+                val nodeAlpha = if (isActive) 1.0f else (nodeAlphaMap[node.id] ?: 0f)
 
-                if (nodeAlpha > 0.01f) {
+                if (nodeAlpha > 0.01f || isActive) {
                     val bgColor: Color
                     val textColor: Color
 
@@ -223,28 +223,28 @@ fun GameCanvas(
                         textColor = NodeNormalText
                     }
 
-                    // Draw solid node circle
+                    // Draw solid node circle (100% solid for active node)
                     drawCircle(
-                        color = bgColor.copy(alpha = nodeAlpha),
+                        color = if (isActive) bgColor else bgColor.copy(alpha = nodeAlpha),
                         radius = circleRadiusPx,
                         center = Offset(screenX, screenY)
                     )
 
-                    // Outer border for active/selectable nodes
+                    // Outer border for active/selectable nodes (100% solid for active node)
                     if (isActive) {
                         drawCircle(
-                            color = LineActiveColor.copy(alpha = nodeAlpha),
+                            color = LineActiveColor,
                             radius = circleRadiusPx + 6f,
                             center = Offset(screenX, screenY),
                             style = Stroke(width = 4f)
                         )
                     }
 
-                    // Draw Text symbol or number in circle
+                    // Draw Text symbol or number in circle (100% solid for active node)
                     val textLayoutResult = textMeasurer.measure(
                         text = node.value,
                         style = TextStyle(
-                            color = textColor.copy(alpha = nodeAlpha),
+                            color = if (isActive) textColor else textColor.copy(alpha = nodeAlpha),
                             fontSize = 24.sp,
                             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
                         )
