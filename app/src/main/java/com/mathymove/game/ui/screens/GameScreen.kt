@@ -90,7 +90,7 @@ fun GameScreen(
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // 2 Equal-width columns so stat text has maximum room to breathe
+                // 3 Equal-width columns: Remaining Moves, Moves Taken, Score
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly,
@@ -104,6 +104,11 @@ fun GameScreen(
                     HudStatItem(
                         label = "Moves Taken",
                         value = "${state.movesTakenForTarget}",
+                        modifier = Modifier.weight(1f)
+                    )
+                    HudStatItem(
+                        label = "Score",
+                        value = "${state.score}",
                         modifier = Modifier.weight(1f)
                     )
                 }

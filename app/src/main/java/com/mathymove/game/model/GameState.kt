@@ -11,10 +11,12 @@ data class GameState(
     val movesBeforeCalculation: Int = 5,
     val movesTakenForTarget: Int = 0,
     val totalMovesTaken: Int = 0,
+    val score: Int = 0,
     val activeNodeId: String = "root",
     val nodes: Map<String, GameNode> = emptyMap(),
     val isGameOver: Boolean = false,
-    val hasSavedGame: Boolean = false
+    val hasSavedGame: Boolean = false,
+    val highScores: List<HighScoreEntry> = emptyList()
 ) {
     val movesRemainingForTarget: Int
         get() = (movesBeforeCalculation - movesTakenForTarget).coerceAtLeast(0)

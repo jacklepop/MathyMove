@@ -30,6 +30,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+        viewModelScope.launch {
+            repository.highScores.collectLatest { list ->
+                _uiState.update { current ->
+                    current.copy(highScores = list)
+                }
+            }
+        }
     }
 
     fun startNewGame() {
@@ -155,13 +162,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             updatedNodes.putAll(nodesWithChildren)
         }
 
-        // Check Target Win Condition
+        // Check Target Win Condition & Score Update
         var newTargetNum = currentState.targetNumber
         var newMovesBudget = currentState.movesBeforeCalculation
         var resetMovesTaken = newMovesTakenForTarget
+        var newScore = currentState.score
 
-        if (newCurrentValue == newTargetNum) {
-            // Target Achieved! Dynamically generate next goal & move budget
+        if (newCurrentValue == currentState.targetNumber) {
+            // Target Achieved! Add target value to current score
+            newScore += currentState.targetNumber
+
+            viewModelScope.launch {
+                repository.addHighScore(newScore)
+            }
+
+            // Dynamically generate next goal & move budget
             newTargetNum = SolvabilityEngine.generateTargetNumber(newTotalMoves)
             newMovesBudget = SolvabilityEngine.generateMovesBeforeCalculation(newTotalMoves)
             resetMovesTaken = 0
@@ -180,6 +195,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             movesBeforeCalculation = newMovesBudget,
             movesTakenForTarget = resetMovesTaken,
             totalMovesTaken = newTotalMoves,
+            score = newScore,
             activeNodeId = nodeId,
             nodes = finalPrunedNodes,
             isGameOver = isLost

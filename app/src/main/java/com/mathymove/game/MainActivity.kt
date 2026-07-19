@@ -58,6 +58,7 @@ fun MathyMoveApp(
         composable<StartRoute> {
             StartScreen(
                 hasSavedGame = uiState.hasSavedGame,
+                highScores = uiState.highScores,
                 onNewGame = {
                     gameViewModel.startNewGame()
                     navController.navigate(GameRoute)
