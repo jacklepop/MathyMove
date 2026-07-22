@@ -189,12 +189,31 @@ fun GameCanvas(
                     if (lineAlpha > 0.01f) {
                         val baseLineColor = if (isConnectedToActive) LineActiveColor else LineColor
 
-                        drawLine(
-                            color = baseLineColor.copy(alpha = lineAlpha),
-                            start = Offset(pScreenX, pScreenY),
-                            end = Offset(cScreenX, cScreenY),
-                            strokeWidth = if (isConnectedToActive) lineStrokePx * 1.5f else lineStrokePx
-                        )
+                        val dx = cScreenX - pScreenX
+                        val dy = cScreenY - pScreenY
+                        val dist = hypot(dx, dy)
+
+                        if (dist > 0f) {
+                            val parentRadius = if (parent.id == activeNodeId) circleRadiusPx + 7.2f else circleRadiusPx
+                            val childRadius = if (node.id == activeNodeId) circleRadiusPx + 7.2f else circleRadiusPx
+
+                            if (dist > parentRadius + childRadius) {
+                                val ux = dx / dist
+                                val uy = dy / dist
+
+                                val startX = pScreenX + ux * parentRadius
+                                val startY = pScreenY + uy * parentRadius
+                                val endX = cScreenX - ux * childRadius
+                                val endY = cScreenY - uy * childRadius
+
+                                drawLine(
+                                    color = baseLineColor.copy(alpha = lineAlpha),
+                                    start = Offset(startX, startY),
+                                    end = Offset(endX, endY),
+                                    strokeWidth = if (isConnectedToActive) lineStrokePx * 1.5f else lineStrokePx
+                                )
+                            }
+                        }
                     }
                 }
             }

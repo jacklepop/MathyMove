@@ -82,6 +82,7 @@ Opacity levels dynamically fade based on Breadth-First Search (BFS) graph distan
 - **Active Connected Lines** (Connecting directly to `activeNodeId`):
   - Color: `LineActiveColor` (`#636366`) at `1.0f` alpha.
   - Stroke Width: `7.2f` px (`4.8f * 1.5f`).
+- **Edge Boundary Constraint**: Interconnecting lines start and end precisely at the outer edges/perimeters of parent and child node circles (offset by `circleRadiusPx` `84.0f` px, or `91.2f` px for active node outer ring) so lines touch node borders without extending underneath semi-transparent or visited node fills.
 
 ---
 
