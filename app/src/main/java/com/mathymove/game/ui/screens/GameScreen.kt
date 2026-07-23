@@ -109,8 +109,27 @@ fun GameScreen(
     val movesAlpha = androidx.compose.runtime.remember { Animatable(1f) }
     val movesScale = androidx.compose.runtime.remember { Animatable(1f) }
 
+    // Clutch Target Win Animation (200% -> 100% scale & Bright Green -> Default white over 2 seconds)
+    val clutchProgress = androidx.compose.runtime.remember { Animatable(0f) }
+
+    androidx.compose.runtime.LaunchedEffect(state.clutchBonusTimestamp) {
+        if (state.clutchBonusTimestamp > 0L) {
+            displayedMoves = currentMovesRemaining
+            movesAlpha.snapTo(1f)
+            movesScale.snapTo(1f)
+            clutchProgress.snapTo(1f)
+            clutchProgress.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 2000,
+                    easing = LinearEasing
+                )
+            )
+        }
+    }
+
     androidx.compose.runtime.LaunchedEffect(currentMovesRemaining) {
-        if (currentMovesRemaining <= 5 && currentMovesRemaining != displayedMoves) {
+        if (currentMovesRemaining <= 5 && currentMovesRemaining != displayedMoves && state.clutchBonusTimestamp == 0L) {
             // Phase 1: Fade out old moves count to 0 visibility in 0.5 seconds (500ms)
             movesAlpha.animateTo(
                 targetValue = 0f,
@@ -150,8 +169,10 @@ fun GameScreen(
         } else {
             // Default display animation when > 5
             displayedMoves = currentMovesRemaining
-            movesAlpha.snapTo(1f)
-            movesScale.snapTo(1f)
+            if (clutchProgress.value <= 0.01f) {
+                movesAlpha.snapTo(1f)
+                movesScale.snapTo(1f)
+            }
         }
     }
 
@@ -260,11 +281,19 @@ fun GameScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val clutchActive = clutchProgress.value > 0.001f
+                    val effectiveScale = if (clutchActive) (1f + clutchProgress.value) else movesScale.value
+                    val effectiveColor = if (clutchActive) {
+                        androidx.compose.ui.graphics.lerp(GreySurface, com.mathymove.game.ui.theme.BrightGreenBonus, clutchProgress.value)
+                    } else {
+                        GreySurface
+                    }
                     HudStatItem(
                         label = "Remaining Moves",
                         value = "$displayedMoves",
                         alpha = movesAlpha.value,
-                        scale = movesScale.value,
+                        scale = effectiveScale,
+                        textColor = effectiveColor,
                         modifier = Modifier.weight(1f)
                     )
                     HudStatItem(
@@ -358,7 +387,8 @@ private fun HudStatItem(
     value: String,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
-    scale: Float = 1f
+    scale: Float = 1f,
+    textColor: androidx.compose.ui.graphics.Color = GreySurface
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -378,7 +408,7 @@ private fun HudStatItem(
             text = value,
             fontSize = 20.4.sp,
             fontWeight = FontWeight.Bold,
-            color = GreySurface,
+            color = textColor,
             maxLines = 1,
             textAlign = TextAlign.Center,
             modifier = Modifier.graphicsLayer {

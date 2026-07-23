@@ -187,6 +187,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         var newScore = currentState.score
         val gameTimestamp = if (currentState.gameTimestamp == 0L) System.currentTimeMillis() else currentState.gameTimestamp
 
+        var clutchTimestamp = currentState.clutchBonusTimestamp
+
         if (newCurrentValue == currentState.targetNumber) {
             // Target Achieved! Add target value to current score
             newScore += currentState.targetNumber
@@ -198,9 +200,15 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             // Dynamically generate next goal number
             newTargetNum = SolvabilityEngine.generateTargetNumber(newTotalMoves)
 
-            // Retain remaining moves before this step and add 8 bonus moves
+            // Retain remaining moves before this step; add 13 moves if remaining moves <= 2, else 8
             val remainingMovesBefore = (currentState.movesBeforeCalculation - currentState.movesTakenForTarget).coerceAtLeast(0)
-            newMovesBudget = remainingMovesBefore + 8
+            val bonusMoves = if (remainingMovesBefore <= 2) {
+                clutchTimestamp = System.currentTimeMillis()
+                13
+            } else {
+                8
+            }
+            newMovesBudget = remainingMovesBefore + bonusMoves
             resetMovesTaken = 0
         }
 
@@ -222,7 +230,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             nodes = finalPrunedNodes,
             isGameOver = isLost,
             activeRemainder = remainderObj,
-            gameTimestamp = gameTimestamp
+            gameTimestamp = gameTimestamp,
+            clutchBonusTimestamp = clutchTimestamp
         )
 
         _uiState.update { current ->

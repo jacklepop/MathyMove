@@ -25,7 +25,8 @@ data class GameState(
     val hasSavedGame: Boolean = false,
     val highScores: List<HighScoreEntry> = emptyList(),
     val activeRemainder: DroppedRemainder? = null,
-    val gameTimestamp: Long = 0L
+    val gameTimestamp: Long = 0L,
+    val clutchBonusTimestamp: Long = 0L
 ) {
     val movesRemainingForTarget: Int
         get() = (movesBeforeCalculation - movesTakenForTarget).coerceAtLeast(0)

@@ -23,3 +23,4 @@ val NodeVisitedText = Color(0xFF8E8E93)
 
 val LineColor = Color(0xFFC7C7CC)
 val LineActiveColor = Color(0xFF636366)
+val BrightGreenBonus = Color(0xFF30D158)
