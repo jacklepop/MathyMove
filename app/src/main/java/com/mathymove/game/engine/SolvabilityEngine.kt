@@ -104,9 +104,9 @@ object SolvabilityEngine {
         // Fallback: construct exact addition / subtraction pair or single move adjustment
         val adjustedDiff = target - curr
         return if (adjustedDiff >= 0) {
-            Pair("+", adjustedDiff.coerceIn(1, 10))
+            Pair("+", adjustedDiff)
         } else {
-            Pair("-", (-adjustedDiff).coerceIn(1, 10))
+            Pair("-", -adjustedDiff)
         }
     }
 
@@ -155,9 +155,9 @@ object SolvabilityEngine {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
 
-        // 3 Radiating directions at EVERY depth layer
+        // Root radiates towards top (-Y axis); child depth layers maintain parent's branch direction
         val baseAngles = if (parentNode.depth == 0) {
-            listOf(0f, 120f, 240f)
+            listOf(-150f, -90f, -30f)
         } else {
             val parentAngle = parentNode.directionAngle
             listOf(parentAngle - 60f, parentAngle, parentAngle + 60f)

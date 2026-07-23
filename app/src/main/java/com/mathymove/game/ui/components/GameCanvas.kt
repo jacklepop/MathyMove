@@ -148,22 +148,15 @@ fun GameCanvas(
                     val centerCanvasX = size.width / 2f
                     val centerCanvasY = size.height / 2f
 
-                    // Find tapped node in world coordinates
-                    for (node in nodes.values) {
-                        val worldNodeX = node.x
-                        val worldNodeY = node.y
-
-                        // Screen coordinates of node
-                        val screenNodeX = centerCanvasX + (worldNodeX - animOffsetX)
-                        val screenNodeY = centerCanvasY + (worldNodeY - animOffsetY)
-
-                        val dist = hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY)
-                        if (dist <= circleRadiusPx + 18f) {
-                            if (!node.visited) {
-                                onNodeTapped(node.id)
-                            }
-                            break
-                        }
+                    // Find tapped unvisited node in screen coordinates
+                    val tappedNode = nodes.values.firstOrNull { node ->
+                        if (node.visited) return@firstOrNull false
+                        val screenNodeX = centerCanvasX + (node.x - animOffsetX)
+                        val screenNodeY = centerCanvasY + (node.y - animOffsetY)
+                        hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY) <= circleRadiusPx + 18f
+                    }
+                    if (tappedNode != null) {
+                        onNodeTapped(tappedNode.id)
                     }
                 }
             }
