@@ -182,7 +182,7 @@ fun GameScreen(
             .fillMaxSize()
             .background(GreyBackground)
     ) {
-        // Main Infinite Canvas Viewport
+        // Layer 2: Main Infinite Canvas Viewport (Active node, lines, operators, numbers)
         GameCanvas(
             nodes = state.nodes,
             activeNodeId = state.activeNodeId,
@@ -191,7 +191,44 @@ fun GameScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Edge-to-Edge Top Black Box HUD (No surrounding gaps)
+        // Layer 1: Target Value Display (Positioned on the right side of the viewport)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 20.dp)
+                .size(105.dp)
+                .background(
+                    color = NodeActiveBackground,
+                    shape = CircleShape
+                )
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "TARGET",
+                    fontSize = 11.4.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "$displayedTarget",
+                    fontSize = 37.sp,
+                    fontWeight = FontWeight.Light,
+                    color = GreySurface,
+                    modifier = Modifier.graphicsLayer {
+                        this.alpha = targetAlpha.value
+                        this.scaleX = targetScale.value
+                        this.scaleY = targetScale.value
+                    }
+                )
+            }
+        }
+
+        // Layer 0 (Top-most): Edge-to-Edge Top HUD Banner (Moves, score, options)
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -288,43 +325,6 @@ fun GameScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
-            }
-        }
-
-        // Target Value Display: Positioned on the right side of the viewport, vertically centered in a circle
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 20.dp)
-                .size(105.dp)
-                .background(
-                    color = NodeActiveBackground,
-                    shape = CircleShape
-                )
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "TARGET",
-                    fontSize = 11.4.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 2.sp
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "$displayedTarget",
-                    fontSize = 37.sp,
-                    fontWeight = FontWeight.Light,
-                    color = GreySurface,
-                    modifier = Modifier.graphicsLayer {
-                        this.alpha = targetAlpha.value
-                        this.scaleX = targetScale.value
-                        this.scaleY = targetScale.value
-                    }
-                )
             }
         }
 

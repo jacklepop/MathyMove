@@ -1,35 +1,37 @@
 package com.mathymove.game.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.drawscope.withTransform
 import com.mathymove.game.model.DroppedRemainder
 import com.mathymove.game.model.GameNode
 import com.mathymove.game.ui.theme.GreyBackground
@@ -41,6 +43,7 @@ import com.mathymove.game.ui.theme.NodeNormalBackground
 import com.mathymove.game.ui.theme.NodeNormalText
 import com.mathymove.game.ui.theme.NodeVisitedBackground
 import com.mathymove.game.ui.theme.NodeVisitedText
+import kotlinx.coroutines.launch
 import kotlin.math.hypot
 
 @Composable
@@ -71,12 +74,30 @@ fun GameCanvas(
     }
 
     val density = LocalDensity.current
-    val leftPaddingPx = with(density) { 20.dp.toPx() }
-    val nodeHalfSize = 84f
-    val lineStrokePx = 4.8f
-    val cornerRadiusPx = with(density) { 5.dp.toPx() }
+    val viewConfig = LocalViewConfiguration.current
+    val coroutineScope = rememberCoroutineScope()
 
-    // Smooth panning target offset: focus on previous node if present so both previous & active nodes are viewable in main viewport
+    val leftPaddingPx = with(density) { 20.dp.toPx() }
+    val defaultRadius = 84f
+    val lineStrokePx = 4.8f
+    val paddingPx = with(density) { 10.dp.toPx() }
+
+    // Dynamic sizing of the active node circle with ~10 padding around text
+    val activeNodeText = activeNode?.value ?: ""
+    val activeTextLayoutResult = textMeasurer.measure(
+        text = activeNodeText,
+        style = TextStyle(
+            fontSize = 28.8.sp,
+            fontWeight = FontWeight.Bold
+        )
+    )
+    val activeTextWidth = activeTextLayoutResult.size.width.toFloat()
+    val activeTextHeight = activeTextLayoutResult.size.height.toFloat()
+    val reqActiveRadius = hypot(activeTextWidth / 2f, activeTextHeight / 2f) + paddingPx
+    val activeNodeRadius = maxOf(defaultRadius, reqActiveRadius)
+    val deltaRadius = activeNodeRadius - defaultRadius
+
+    // Smooth panning target offset: focus on previous node if present
     val previousNode = activeNode?.parentId?.let { nodes[it] }
     val targetOffsetX = if (previousNode != null) {
         previousNode.x
@@ -97,8 +118,12 @@ fun GameCanvas(
         label = "animOffsetY"
     )
 
+    // User drag/pan offsets for Layer 2 viewing
+    val userPanX = remember { Animatable(0f) }
+    val userPanY = remember { Animatable(0f) }
+
     // Calculate graph distances from activeNodeId via BFS for fade effects
-    val distanceMap = androidx.compose.runtime.remember(nodes, activeNodeId) {
+    val distanceMap = remember(nodes, activeNodeId) {
         val dists = mutableMapOf<String, Int>()
         val queue = ArrayDeque<String>()
 
@@ -141,9 +166,9 @@ fun GameCanvas(
         val targetAlpha = getAlphaForDistance(nodeDist)
         val animAlpha by animateFloatAsState(
             targetValue = targetAlpha,
-            animationSpec = androidx.compose.animation.core.tween(
+            animationSpec = tween(
                 durationMillis = 1500,
-                easing = androidx.compose.animation.core.LinearEasing
+                easing = LinearEasing
             ),
             label = "alpha_$id"
         )
@@ -154,37 +179,176 @@ fun GameCanvas(
         modifier = modifier
             .fillMaxSize()
             .background(GreyBackground)
-            .pointerInput(nodes, activeNodeId, animOffsetX, animOffsetY) {
-                detectTapGestures { tapOffset ->
-                    val mainNodeScreenX = leftPaddingPx + nodeHalfSize
-                    val centerCanvasY = size.height / 2f
+            .pointerInput(nodes, activeNodeId, animOffsetX, animOffsetY, deltaRadius) {
+                val touchSlop = viewConfig.touchSlop
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    var curPanX = userPanX.value
+                    var curPanY = userPanY.value
+                    var totalDragDist = 0f
+                    val pointerId = down.id
+                    val downPos = down.position
 
-                    // ONLY direct unvisited child nodes of activeNode can be tapped
-                    val tappableChildNodes = activeNode?.childrenIds?.mapNotNull { nodes[it] } ?: emptyList()
-                    val tappedNode = tappableChildNodes.firstOrNull { node ->
-                        if (node.visited) return@firstOrNull false
-                        val screenNodeX = mainNodeScreenX + (node.x - animOffsetX)
-                        val screenNodeY = centerCanvasY + (node.y - animOffsetY)
-                        hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY) <= nodeHalfSize + 18f
+                    var pointerUp = false
+                    while (!pointerUp) {
+                        val event = awaitPointerEvent()
+                        val change = event.changes.firstOrNull { it.id == pointerId } ?: break
+
+                        if (change.pressed) {
+                            val dragAmount = change.positionChange()
+                            if (dragAmount != Offset.Zero) {
+                                change.consume()
+                                totalDragDist += dragAmount.getDistance()
+                                curPanX += dragAmount.x
+                                curPanY += dragAmount.y
+                                coroutineScope.launch {
+                                    userPanX.snapTo(curPanX)
+                                    userPanY.snapTo(curPanY)
+                                }
+                            }
+                        } else {
+                            pointerUp = true
+                        }
                     }
-                    if (tappedNode != null) {
-                        onNodeTapped(tappedNode.id)
+
+                    // Calculate node display positions for hit testing & rendering
+                    val mainNodeScreenX = leftPaddingPx + defaultRadius
+                    val centerCanvasY = size.height / 2f
+                    val active = nodes[activeNodeId]
+
+                    val dispMap = mutableMapOf<String, Offset>()
+                    if (active != null) {
+                        val activeBaseX = mainNodeScreenX + (active.x - animOffsetX)
+                        val activeBaseY = centerCanvasY + (active.y - animOffsetY)
+                        dispMap[activeNodeId] = Offset(activeBaseX, activeBaseY)
+
+                        val queue = ArrayDeque<String>()
+                        queue.add(activeNodeId)
+                        val visitedBFS = mutableSetOf(activeNodeId)
+
+                        while (queue.isNotEmpty()) {
+                            val currId = queue.removeFirst()
+                            val currNode = nodes[currId] ?: continue
+                            val currPos = dispMap[currId] ?: continue
+
+                            val neighbors = mutableListOf<String>()
+                            currNode.parentId?.let { neighbors.add(it) }
+                            neighbors.addAll(currNode.childrenIds)
+
+                            for (nbrId in neighbors) {
+                                if (nodes.containsKey(nbrId) && !visitedBFS.contains(nbrId)) {
+                                    visitedBFS.add(nbrId)
+                                    val nbrNode = nodes[nbrId]!!
+                                    val baseVecX = nbrNode.x - currNode.x
+                                    val baseVecY = nbrNode.y - currNode.y
+                                    val dist = hypot(baseVecX, baseVecY)
+
+                                    if (currId == activeNodeId && dist > 0f) {
+                                        val ux = baseVecX / dist
+                                        val uy = baseVecY / dist
+                                        val extendedDist = dist + deltaRadius
+                                        dispMap[nbrId] = Offset(activeBaseX + ux * extendedDist, activeBaseY + uy * extendedDist)
+                                    } else {
+                                        dispMap[nbrId] = Offset(currPos.x + baseVecX, currPos.y + baseVecY)
+                                    }
+                                    queue.add(nbrId)
+                                }
+                            }
+                        }
+                    }
+
+                    // If gesture was a TAP (not a drag), process node tap event
+                    if (totalDragDist < touchSlop) {
+                        val panOffset = Offset(userPanX.value, userPanY.value)
+                        val tappableChildNodes = activeNode?.childrenIds?.mapNotNull { nodes[it] } ?: emptyList()
+                        val tappedNode = tappableChildNodes.firstOrNull { node ->
+                            if (node.visited) return@firstOrNull false
+                            val nodePos = dispMap[node.id] ?: return@firstOrNull false
+                            val screenNodeX = nodePos.x + panOffset.x
+                            val screenNodeY = nodePos.y + panOffset.y
+                            hypot(downPos.x - screenNodeX, downPos.y - screenNodeY) <= defaultRadius + 18f
+                        }
+                        if (tappedNode != null) {
+                            onNodeTapped(tappedNode.id)
+                        }
+                    }
+
+                    // Smooth snap-back to default starting position of active node upon release
+                    coroutineScope.launch {
+                        userPanX.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        )
+                    }
+                    coroutineScope.launch {
+                        userPanY.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        )
                     }
                 }
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val mainNodeScreenX = leftPaddingPx + nodeHalfSize
+            val mainNodeScreenX = leftPaddingPx + defaultRadius
             val centerCanvasY = size.height / 2f
+            val panOffset = Offset(userPanX.value, userPanY.value)
+
+            // Step 0: Compute display positions for all nodes with radial expansion away from active node
+            val dispMap = mutableMapOf<String, Offset>()
+            val active = nodes[activeNodeId]
+            if (active != null) {
+                val activeBaseX = mainNodeScreenX + (active.x - animOffsetX)
+                val activeBaseY = centerCanvasY + (active.y - animOffsetY)
+                dispMap[activeNodeId] = Offset(activeBaseX, activeBaseY)
+
+                val queue = ArrayDeque<String>()
+                queue.add(activeNodeId)
+                val visitedBFS = mutableSetOf(activeNodeId)
+
+                while (queue.isNotEmpty()) {
+                    val currId = queue.removeFirst()
+                    val currNode = nodes[currId] ?: continue
+                    val currPos = dispMap[currId] ?: continue
+
+                    val neighbors = mutableListOf<String>()
+                    currNode.parentId?.let { neighbors.add(it) }
+                    neighbors.addAll(currNode.childrenIds)
+
+                    for (nbrId in neighbors) {
+                        if (nodes.containsKey(nbrId) && !visitedBFS.contains(nbrId)) {
+                            visitedBFS.add(nbrId)
+                            val nbrNode = nodes[nbrId]!!
+                            val baseVecX = nbrNode.x - currNode.x
+                            val baseVecY = nbrNode.y - currNode.y
+                            val dist = hypot(baseVecX, baseVecY)
+
+                            if (currId == activeNodeId && dist > 0f) {
+                                val ux = baseVecX / dist
+                                val uy = baseVecY / dist
+                                val extendedDist = dist + deltaRadius
+                                dispMap[nbrId] = Offset(activeBaseX + ux * extendedDist, activeBaseY + uy * extendedDist)
+                            } else {
+                                dispMap[nbrId] = Offset(currPos.x + baseVecX, currPos.y + baseVecY)
+                            }
+                            queue.add(nbrId)
+                        }
+                    }
+                }
+            }
 
             // Step 1: Draw radiating connecting lines between parent and child nodes with 1.5s smooth fade
             nodes.values.forEach { node ->
                 val parent = node.parentId?.let { nodes[it] }
                 if (parent != null) {
-                    val pScreenX = mainNodeScreenX + (parent.x - animOffsetX)
-                    val pScreenY = centerCanvasY + (parent.y - animOffsetY)
-                    val cScreenX = mainNodeScreenX + (node.x - animOffsetX)
-                    val cScreenY = centerCanvasY + (node.y - animOffsetY)
+                    val pPos = (dispMap[parent.id] ?: Offset.Zero) + panOffset
+                    val cPos = (dispMap[node.id] ?: Offset.Zero) + panOffset
 
                     val pAlpha = nodeAlphaMap[parent.id] ?: 0f
                     val cAlpha = nodeAlphaMap[node.id] ?: 0f
@@ -194,22 +358,22 @@ fun GameCanvas(
                     if (lineAlpha > 0.01f) {
                         val baseLineColor = if (isConnectedToActive) LineActiveColor else LineColor
 
-                        val dx = cScreenX - pScreenX
-                        val dy = cScreenY - pScreenY
+                        val dx = cPos.x - pPos.x
+                        val dy = cPos.y - pPos.y
                         val dist = hypot(dx, dy)
 
                         if (dist > 0f) {
-                            val parentRadius = if (parent.id == activeNodeId) nodeHalfSize + 7.2f else nodeHalfSize
-                            val childRadius = if (node.id == activeNodeId) nodeHalfSize + 7.2f else nodeHalfSize
+                            val parentRadius = if (parent.id == activeNodeId) activeNodeRadius + 7.2f else defaultRadius
+                            val childRadius = if (node.id == activeNodeId) activeNodeRadius + 7.2f else defaultRadius
 
                             if (dist > parentRadius + childRadius) {
                                 val ux = dx / dist
                                 val uy = dy / dist
 
-                                val startX = pScreenX + ux * parentRadius
-                                val startY = pScreenY + uy * parentRadius
-                                val endX = cScreenX - ux * childRadius
-                                val endY = cScreenY - uy * childRadius
+                                val startX = pPos.x + ux * parentRadius
+                                val startY = pPos.y + uy * parentRadius
+                                val endX = cPos.x - ux * childRadius
+                                val endY = cPos.y - uy * childRadius
 
                                 drawLine(
                                     color = baseLineColor.copy(alpha = lineAlpha),
@@ -233,13 +397,15 @@ fun GameCanvas(
             })
 
             sortedNodes.forEach { node ->
-                val screenX = mainNodeScreenX + (node.x - animOffsetX)
-                val screenY = centerCanvasY + (node.y - animOffsetY)
+                val nodePos = (dispMap[node.id] ?: Offset.Zero) + panOffset
+                val screenX = nodePos.x
+                val screenY = nodePos.y
 
                 val isActive = node.id == activeNodeId
                 val isDirectChild = activeNode?.childrenIds?.contains(node.id) == true
                 val isVisited = node.visited && !isActive
                 val nodeAlpha = if (isActive) 1.0f else (nodeAlphaMap[node.id] ?: 0f)
+                val currentRadius = if (isActive) activeNodeRadius else defaultRadius
 
                 if (nodeAlpha > 0.01f || isActive || isDirectChild) {
                     val bgColor: Color
@@ -256,10 +422,10 @@ fun GameCanvas(
                         textColor = NodeNormalText
                     }
 
-                    // Draw solid node circle (100% solid for active & newly generated child nodes)
+                    // Draw solid node circle
                     drawCircle(
                         color = if (isActive || isDirectChild) bgColor else bgColor.copy(alpha = nodeAlpha),
-                        radius = nodeHalfSize,
+                        radius = currentRadius,
                         center = Offset(screenX, screenY)
                     )
 
@@ -267,21 +433,25 @@ fun GameCanvas(
                     if (isActive) {
                         drawCircle(
                             color = LineActiveColor,
-                            radius = nodeHalfSize + 7.2f,
+                            radius = currentRadius + 7.2f,
                             center = Offset(screenX, screenY),
                             style = Stroke(width = 4.8f)
                         )
                     }
 
                     // Draw Text symbol or number in circle
-                    val textLayoutResult = textMeasurer.measure(
-                        text = node.value,
-                        style = TextStyle(
-                            color = if (isActive || isDirectChild) textColor else textColor.copy(alpha = nodeAlpha),
-                            fontSize = 28.8.sp,
-                            fontWeight = if (isActive || isDirectChild) FontWeight.Bold else FontWeight.Medium
+                    val textLayoutResult = if (isActive) {
+                        activeTextLayoutResult
+                    } else {
+                        textMeasurer.measure(
+                            text = node.value,
+                            style = TextStyle(
+                                color = if (isDirectChild) textColor else textColor.copy(alpha = nodeAlpha),
+                                fontSize = 28.8.sp,
+                                fontWeight = if (isDirectChild) FontWeight.Bold else FontWeight.Medium
+                            )
                         )
-                    )
+                    }
 
                     drawText(
                         textLayoutResult = textLayoutResult,
@@ -329,3 +499,4 @@ fun GameCanvas(
         }
     }
 }
+
