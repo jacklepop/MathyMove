@@ -8,7 +8,7 @@ import kotlin.random.Random
 
 object SolvabilityEngine {
 
-    private const val NODE_DISTANCE = 210f // Spacing between radiating nodes
+    private const val NODE_DISTANCE = 240f // Spacing between radiating nodes
 
     fun generateTargetNumber(totalMovesTaken: Int): Int {
         return if (totalMovesTaken >= 200) {
