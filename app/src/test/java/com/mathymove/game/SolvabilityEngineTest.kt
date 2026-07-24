@@ -54,7 +54,7 @@ class SolvabilityEngineTest {
     }
 
     @Test
-    fun testExpandNodeChildren_radiatesTopDirectionAtFixedAngles() {
+    fun testExpandNodeChildren_radiatesRightDirectionAtFixedAngles() {
         val rootNode = com.mathymove.game.model.GameNode(
             id = "root",
             x = 0f,
@@ -72,37 +72,37 @@ class SolvabilityEngineTest {
 
         assertEquals("Should create 3 child nodes", 3, childIds.size)
 
-        val expectedAngles = listOf(-150f, -90f, -30f)
+        val expectedAngles = listOf(-45f, 0f, 45f)
         childIds.forEachIndexed { index, childId ->
             val child = nodes[childId]!!
-            assertEquals("Child $index direction angle should match fixed angle", expectedAngles[index], child.directionAngle)
-            assertTrue("Child $index Y position should be smaller (above parent)", child.y < rootNode.y)
+            assertEquals("Child $index direction angle should match rightward angle", expectedAngles[index], child.directionAngle)
+            assertTrue("Child $index X position should progress rightward (+X)", child.x > rootNode.x)
         }
     }
 
     @Test
-    fun testExpandNodeChildren_directionalFanOutAtDepthGreaterThanZero() {
-        val farLeftChild = com.mathymove.game.model.GameNode(
-            id = "far_left",
-            x = -299.6f,
-            y = -173f,
+    fun testExpandNodeChildren_directionalRightwardFanOutAtDepthGreaterThanZero() {
+        val childNode = com.mathymove.game.model.GameNode(
+            id = "child_1",
+            x = 346f,
+            y = 0f,
             value = "+",
             type = com.mathymove.game.model.NodeType.OPERATOR,
             depth = 1,
             visited = true,
-            directionAngle = -150f
+            directionAngle = 0f
         )
 
         val (nodes, childIds) = SolvabilityEngine.expandNodeChildren(
-            parentNode = farLeftChild,
-            existingNodes = mapOf("far_left" to farLeftChild)
+            parentNode = childNode,
+            existingNodes = mapOf("child_1" to childNode)
         )
 
-        val expectedAngles = listOf(-210f, -150f, -90f)
+        val expectedAngles = listOf(-45f, 0f, 45f)
         childIds.forEachIndexed { index, childId ->
             val child = nodes[childId]!!
-            assertEquals("Child $index angle should maintain parent direction fan-out", expectedAngles[index], child.directionAngle)
-            assertTrue("Child $index X position should not overlap center (0.0f)", kotlin.math.abs(child.x) > 10f)
+            assertEquals("Child $index angle should maintain rightward fan-out", expectedAngles[index], child.directionAngle)
+            assertTrue("Child $index X position should progress further rightward (+X)", child.x > childNode.x)
         }
     }
 }

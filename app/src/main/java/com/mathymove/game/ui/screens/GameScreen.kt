@@ -251,30 +251,10 @@ fun GameScreen(
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 48.dp) // Room for menu icon on top right
             ) {
-                Text(
-                    text = "TARGET",
-                    fontSize = 13.2.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
-                    letterSpacing = 2.sp
-                )
-
-                Text(
-                    text = "$displayedTarget",
-                    fontSize = 52.8.sp,
-                    fontWeight = FontWeight.Light,
-                    color = GreySurface,
-                    modifier = Modifier.graphicsLayer {
-                        this.alpha = targetAlpha.value
-                        this.scaleX = targetScale.value
-                        this.scaleY = targetScale.value
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
                 // 3 Equal-width columns: Remaining Moves, Moves Taken, Score
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -307,6 +287,42 @@ fun GameScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+        }
+
+        // Target Value Display: Positioned on the right side of the viewport, vertically centered
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 20.dp)
+                .background(
+                    color = NodeActiveBackground,
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "TARGET",
+                    fontSize = 11.4.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 2.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "$displayedTarget",
+                    fontSize = 37.sp,
+                    fontWeight = FontWeight.Light,
+                    color = GreySurface,
+                    modifier = Modifier.graphicsLayer {
+                        this.alpha = targetAlpha.value
+                        this.scaleX = targetScale.value
+                        this.scaleY = targetScale.value
+                    }
+                )
             }
         }
 

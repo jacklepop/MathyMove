@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -67,8 +70,19 @@ fun GameCanvas(
         }
     }
 
-    // Smooth panning target offset to center view on active node
-    val targetOffsetX = activeNode?.x ?: 0f
+    val density = LocalDensity.current
+    val leftPaddingPx = with(density) { 20.dp.toPx() }
+    val nodeHalfSize = 84f
+    val lineStrokePx = 4.8f
+    val cornerRadiusPx = with(density) { 5.dp.toPx() }
+
+    // Smooth panning target offset: focus on previous node if present so both previous & active nodes are viewable in main viewport
+    val previousNode = activeNode?.parentId?.let { nodes[it] }
+    val targetOffsetX = if (previousNode != null) {
+        previousNode.x
+    } else {
+        activeNode?.x ?: 0f
+    }
     val targetOffsetY = activeNode?.y ?: 0f
 
     val animOffsetX by animateFloatAsState(
@@ -136,24 +150,21 @@ fun GameCanvas(
         animAlpha
     }
 
-    val circleRadiusPx = 84f
-    val lineStrokePx = 4.8f
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(GreyBackground)
             .pointerInput(nodes, activeNodeId, animOffsetX, animOffsetY) {
                 detectTapGestures { tapOffset ->
-                    val centerCanvasX = size.width / 2f
+                    val mainNodeScreenX = leftPaddingPx + nodeHalfSize
                     val centerCanvasY = size.height / 2f
 
                     // Find tapped unvisited node in screen coordinates
                     val tappedNode = nodes.values.firstOrNull { node ->
                         if (node.visited) return@firstOrNull false
-                        val screenNodeX = centerCanvasX + (node.x - animOffsetX)
+                        val screenNodeX = mainNodeScreenX + (node.x - animOffsetX)
                         val screenNodeY = centerCanvasY + (node.y - animOffsetY)
-                        hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY) <= circleRadiusPx + 18f
+                        hypot(tapOffset.x - screenNodeX, tapOffset.y - screenNodeY) <= nodeHalfSize + 18f
                     }
                     if (tappedNode != null) {
                         onNodeTapped(tappedNode.id)
@@ -162,16 +173,16 @@ fun GameCanvas(
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val centerCanvasX = size.width / 2f
+            val mainNodeScreenX = leftPaddingPx + nodeHalfSize
             val centerCanvasY = size.height / 2f
 
             // Step 1: Draw radiating connecting lines between parent and child nodes with 1.5s smooth fade
             nodes.values.forEach { node ->
                 val parent = node.parentId?.let { nodes[it] }
                 if (parent != null) {
-                    val pScreenX = centerCanvasX + (parent.x - animOffsetX)
+                    val pScreenX = mainNodeScreenX + (parent.x - animOffsetX)
                     val pScreenY = centerCanvasY + (parent.y - animOffsetY)
-                    val cScreenX = centerCanvasX + (node.x - animOffsetX)
+                    val cScreenX = mainNodeScreenX + (node.x - animOffsetX)
                     val cScreenY = centerCanvasY + (node.y - animOffsetY)
 
                     val pAlpha = nodeAlphaMap[parent.id] ?: 0f
@@ -187,8 +198,8 @@ fun GameCanvas(
                         val dist = hypot(dx, dy)
 
                         if (dist > 0f) {
-                            val parentRadius = if (parent.id == activeNodeId) circleRadiusPx + 7.2f else circleRadiusPx
-                            val childRadius = if (node.id == activeNodeId) circleRadiusPx + 7.2f else circleRadiusPx
+                            val parentRadius = if (parent.id == activeNodeId) nodeHalfSize + 7.2f else nodeHalfSize
+                            val childRadius = if (node.id == activeNodeId) nodeHalfSize + 7.2f else nodeHalfSize
 
                             if (dist > parentRadius + childRadius) {
                                 val ux = dx / dist
@@ -211,9 +222,9 @@ fun GameCanvas(
                 }
             }
 
-            // Step 2: Draw circle nodes & text (Active circle unaffected by fade/visibility changes)
+            // Step 2: Draw rounded square nodes & text
             nodes.values.forEach { node ->
-                val screenX = centerCanvasX + (node.x - animOffsetX)
+                val screenX = mainNodeScreenX + (node.x - animOffsetX)
                 val screenY = centerCanvasY + (node.y - animOffsetY)
 
                 val isActive = node.id == activeNodeId
@@ -235,19 +246,22 @@ fun GameCanvas(
                         textColor = NodeNormalText
                     }
 
-                    // Draw solid node circle (100% solid for active node)
-                    drawCircle(
+                    // Draw solid rounded square node fill (100% solid for active node)
+                    drawRoundRect(
                         color = if (isActive) bgColor else bgColor.copy(alpha = nodeAlpha),
-                        radius = circleRadiusPx,
-                        center = Offset(screenX, screenY)
+                        topLeft = Offset(screenX - nodeHalfSize, screenY - nodeHalfSize),
+                        size = Size(nodeHalfSize * 2f, nodeHalfSize * 2f),
+                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
                     )
 
                     // Outer border for active/selectable nodes (100% solid for active node)
                     if (isActive) {
-                        drawCircle(
+                        val outerHalfSize = nodeHalfSize + 7.2f
+                        drawRoundRect(
                             color = LineActiveColor,
-                            radius = circleRadiusPx + 7.2f,
-                            center = Offset(screenX, screenY),
+                            topLeft = Offset(screenX - outerHalfSize, screenY - outerHalfSize),
+                            size = Size(outerHalfSize * 2f, outerHalfSize * 2f),
+                            cornerRadius = CornerRadius(cornerRadiusPx + 3.6f, cornerRadiusPx + 3.6f),
                             style = Stroke(width = 4.8f)
                         )
                     }

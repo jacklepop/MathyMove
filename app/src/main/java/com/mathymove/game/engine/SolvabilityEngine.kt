@@ -8,7 +8,7 @@ import kotlin.random.Random
 
 object SolvabilityEngine {
 
-    private const val NODE_DISTANCE = 346f // Spacing between radiating nodes
+    private const val NODE_DISTANCE = 210f // Spacing between radiating nodes
 
     fun generateTargetNumber(totalMovesTaken: Int): Int {
         return if (totalMovesTaken >= 200) {
@@ -155,13 +155,8 @@ object SolvabilityEngine {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
 
-        // Root radiates towards top (-Y axis); child depth layers maintain parent's branch direction
-        val baseAngles = if (parentNode.depth == 0) {
-            listOf(-150f, -90f, -30f)
-        } else {
-            val parentAngle = parentNode.directionAngle
-            listOf(parentAngle - 60f, parentAngle, parentAngle + 60f)
-        }
+        // Child nodes fan out strictly to the right (+X direction)
+        val baseAngles = listOf(-45f, 0f, 45f)
 
         val goldenBranchIndex = if (goldenStep != null) Random.nextInt(0, 3) else -1
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER
