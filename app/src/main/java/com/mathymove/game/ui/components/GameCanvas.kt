@@ -159,8 +159,9 @@ fun GameCanvas(
                     val mainNodeScreenX = leftPaddingPx + nodeHalfSize
                     val centerCanvasY = size.height / 2f
 
-                    // Find tapped unvisited node in screen coordinates
-                    val tappedNode = nodes.values.firstOrNull { node ->
+                    // ONLY direct unvisited child nodes of activeNode can be tapped
+                    val tappableChildNodes = activeNode?.childrenIds?.mapNotNull { nodes[it] } ?: emptyList()
+                    val tappedNode = tappableChildNodes.firstOrNull { node ->
                         if (node.visited) return@firstOrNull false
                         val screenNodeX = mainNodeScreenX + (node.x - animOffsetX)
                         val screenNodeY = centerCanvasY + (node.y - animOffsetY)
@@ -222,20 +223,29 @@ fun GameCanvas(
                 }
             }
 
-            // Step 2: Draw rounded square nodes & text
-            nodes.values.forEach { node ->
+            // Step 2: Draw nodes & text (draw older nodes first, active node next, and direct child nodes LAST on top)
+            val sortedNodes = nodes.values.sortedWith(compareBy { node ->
+                when {
+                    activeNode?.childrenIds?.contains(node.id) == true -> 2
+                    node.id == activeNodeId -> 1
+                    else -> 0
+                }
+            })
+
+            sortedNodes.forEach { node ->
                 val screenX = mainNodeScreenX + (node.x - animOffsetX)
                 val screenY = centerCanvasY + (node.y - animOffsetY)
 
                 val isActive = node.id == activeNodeId
+                val isDirectChild = activeNode?.childrenIds?.contains(node.id) == true
                 val isVisited = node.visited && !isActive
                 val nodeAlpha = if (isActive) 1.0f else (nodeAlphaMap[node.id] ?: 0f)
 
-                if (nodeAlpha > 0.01f || isActive) {
+                if (nodeAlpha > 0.01f || isActive || isDirectChild) {
                     val bgColor: Color
                     val textColor: Color
 
-                    if (isActive) {
+                    if (isActive || isDirectChild) {
                         bgColor = NodeActiveBackground
                         textColor = NodeActiveText
                     } else if (isVisited) {
@@ -246,14 +256,14 @@ fun GameCanvas(
                         textColor = NodeNormalText
                     }
 
-                    // Draw solid node circle (100% solid for active node)
+                    // Draw solid node circle (100% solid for active & newly generated child nodes)
                     drawCircle(
-                        color = if (isActive) bgColor else bgColor.copy(alpha = nodeAlpha),
+                        color = if (isActive || isDirectChild) bgColor else bgColor.copy(alpha = nodeAlpha),
                         radius = nodeHalfSize,
                         center = Offset(screenX, screenY)
                     )
 
-                    // Outer border for active/selectable nodes (100% solid for active node)
+                    // Outer border ring for active node
                     if (isActive) {
                         drawCircle(
                             color = LineActiveColor,
@@ -263,13 +273,13 @@ fun GameCanvas(
                         )
                     }
 
-                    // Draw Text symbol or number in circle (100% solid for active node)
+                    // Draw Text symbol or number in circle
                     val textLayoutResult = textMeasurer.measure(
                         text = node.value,
                         style = TextStyle(
-                            color = if (isActive) textColor else textColor.copy(alpha = nodeAlpha),
+                            color = if (isActive || isDirectChild) textColor else textColor.copy(alpha = nodeAlpha),
                             fontSize = 28.8.sp,
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
+                            fontWeight = if (isActive || isDirectChild) FontWeight.Bold else FontWeight.Medium
                         )
                     )
 
