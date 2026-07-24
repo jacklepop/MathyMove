@@ -87,6 +87,7 @@ fun GameCanvas(
     val activeTextLayoutResult = textMeasurer.measure(
         text = activeNodeText,
         style = TextStyle(
+            color = Color.White,
             fontSize = 28.8.sp,
             fontWeight = FontWeight.Bold
         )
