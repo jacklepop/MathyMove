@@ -155,8 +155,8 @@ object SolvabilityEngine {
         val newNodes = existingNodes.toMutableMap()
         val createdChildIds = mutableListOf<String>()
 
-        // Child nodes fan out strictly to the right (+X direction)
-        val baseAngles = listOf(-45f, 0f, 45f)
+        // Child nodes fan out rightward at wider angles (-60, 0, +60 degrees)
+        val baseAngles = listOf(-60f, 0f, 60f)
 
         val goldenBranchIndex = if (goldenStep != null) Random.nextInt(0, 3) else -1
         val nextType = if (parentNode.type == NodeType.NUMBER) NodeType.OPERATOR else NodeType.NUMBER

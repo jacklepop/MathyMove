@@ -72,7 +72,7 @@ class SolvabilityEngineTest {
 
         assertEquals("Should create 3 child nodes", 3, childIds.size)
 
-        val expectedAngles = listOf(-45f, 0f, 45f)
+        val expectedAngles = listOf(-60f, 0f, 60f)
         childIds.forEachIndexed { index, childId ->
             val child = nodes[childId]!!
             assertEquals("Child $index direction angle should match rightward angle", expectedAngles[index], child.directionAngle)
@@ -98,7 +98,7 @@ class SolvabilityEngineTest {
             existingNodes = mapOf("child_1" to childNode)
         )
 
-        val expectedAngles = listOf(-45f, 0f, 45f)
+        val expectedAngles = listOf(-60f, 0f, 60f)
         childIds.forEachIndexed { index, childId ->
             val child = nodes[childId]!!
             assertEquals("Child $index angle should maintain rightward fan-out", expectedAngles[index], child.directionAngle)

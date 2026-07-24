@@ -246,22 +246,19 @@ fun GameCanvas(
                         textColor = NodeNormalText
                     }
 
-                    // Draw solid rounded square node fill (100% solid for active node)
-                    drawRoundRect(
+                    // Draw solid node circle (100% solid for active node)
+                    drawCircle(
                         color = if (isActive) bgColor else bgColor.copy(alpha = nodeAlpha),
-                        topLeft = Offset(screenX - nodeHalfSize, screenY - nodeHalfSize),
-                        size = Size(nodeHalfSize * 2f, nodeHalfSize * 2f),
-                        cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
+                        radius = nodeHalfSize,
+                        center = Offset(screenX, screenY)
                     )
 
                     // Outer border for active/selectable nodes (100% solid for active node)
                     if (isActive) {
-                        val outerHalfSize = nodeHalfSize + 7.2f
-                        drawRoundRect(
+                        drawCircle(
                             color = LineActiveColor,
-                            topLeft = Offset(screenX - outerHalfSize, screenY - outerHalfSize),
-                            size = Size(outerHalfSize * 2f, outerHalfSize * 2f),
-                            cornerRadius = CornerRadius(cornerRadiusPx + 3.6f, cornerRadiusPx + 3.6f),
+                            radius = nodeHalfSize + 7.2f,
+                            center = Offset(screenX, screenY),
                             style = Stroke(width = 4.8f)
                         )
                     }
