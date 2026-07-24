@@ -70,7 +70,7 @@ object SolvabilityEngine {
 
     private fun chooseIntermediateNum(curr: Int, op: String, target: Int): Int {
         return when (op) {
-            "+" -> Random.nextInt(1, 11)
+            "+" -> Random.nextInt(0, 11)
             "-" -> if (curr > 1) Random.nextInt(1, minOf(curr, 11)) else 1
             "x", "*" -> if (curr in 1..20) Random.nextInt(2, 5) else 1
             "÷", "/" -> {
@@ -169,11 +169,11 @@ object SolvabilityEngine {
             availableOperators.remove(goldenOp)
         }
 
-        // Prepare pool of distinct numbers (1..10) to ensure NO duplicate numbers across the 3 child branches
-        val availableNumbers = (1..10).shuffled().toMutableList()
+        // Prepare pool of distinct numbers (0..10) to ensure NO duplicate numbers across the 3 child branches
+        val availableNumbers = (0..10).shuffled().toMutableList()
 
         if (nextType == NodeType.NUMBER && goldenStep != null) {
-            val goldenNum = goldenStep.second
+            val goldenNum = goldenStep.second.coerceIn(0, 10)
             availableNumbers.remove(goldenNum)
         }
 
@@ -192,9 +192,9 @@ object SolvabilityEngine {
                 }
             } else {
                 if (isGolden) {
-                    goldenStep!!.second.toString()
+                    goldenStep!!.second.coerceIn(0, 10).toString()
                 } else {
-                    if (availableNumbers.isNotEmpty()) availableNumbers.removeAt(0).toString() else Random.nextInt(1, 11).toString()
+                    if (availableNumbers.isNotEmpty()) availableNumbers.removeAt(0).toString() else Random.nextInt(0, 11).toString()
                 }
             }
 
